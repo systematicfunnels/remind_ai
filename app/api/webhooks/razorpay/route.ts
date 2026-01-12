@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { supabase } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
     const phoneId = payment.notes.phone_id; // We assume phone_id is passed in notes
 
     if (phoneId) {
-      const { error } = await supabase
-        .from('users')
-        .update({ sub_status: 'paid' })
-        .eq('phone_id', phoneId);
-      
-      if (error) {
-        console.error('Error updating sub_status:', error);
+      try {
+        await prisma.user.update({
+          where: { phone_id: phoneId },
+          data: { sub_status: 'paid' },
+        });
+      } catch (error) {
+        console.error('Error updating sub_status with Prisma:', error);
       }
     }
   }

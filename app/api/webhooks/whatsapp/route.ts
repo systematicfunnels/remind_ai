@@ -6,7 +6,7 @@ import twilio from 'twilio';
 
 export const dynamic = 'force-dynamic';
 
-const twilioClient = (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
+const twilioClient = (process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && process.env.TWILIO_AUTH_TOKEN)
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Check Subscription & Limit
-  if (user.sub_status === 'trial' && user.reminder_count >= 5) {
+  const reminderCount = user.reminder_count ?? 0;
+  if (user.sub_status === 'trial' && reminderCount >= 5) {
     await sendWhatsAppMessage(from, `Upgrade for unlimited: ${process.env.RAZORPAY_CHECKOUT_LINK}`);
     return NextResponse.json({ success: true });
   }

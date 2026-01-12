@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  phone_id       String     @unique
+  sub_status     String?    @default("trial")
+  reminder_count Int?       @default(0)
+  created_at     DateTime?  @default(now()) @db.Timestamp(6)
+  reminders      Reminder[]
+
+  @@map("users")
+}
+
+model Reminder {
+  id           String    @id @default(uuid()) @db.Uuid
+  user_id      String?   @db.Uuid
+  task         String
+  scheduled_at DateTime  @db.Timestamptz(6)
+  status       String?   @default("pending")
+  done_at      DateTime? @db.Timestamp(6)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  user         User?     @relation(fields: [user_id], references: [id])
+
+  @@map("reminders")
+}

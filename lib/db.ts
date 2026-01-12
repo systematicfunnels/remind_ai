@@ -1,70 +1,76 @@
-import { supabase } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 export interface User {
   id: string;
   phone_id: string;
-  sub_status: 'trial' | 'paid' | 'cancelled';
-  reminder_count: number;
+  sub_status: string | null;
+  reminder_count: number | null;
 }
 
 export interface Reminder {
   id: string;
-  user_id: string;
+  user_id: string | null;
   task: string;
-  scheduled_at: string;
-  status: 'pending' | 'done';
-  done_at?: string;
+  scheduled_at: Date;
+  status: string | null;
+  done_at?: Date | null;
 }
 
 export const db = {
   async getUserByPhone(phoneId: string): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone_id', phoneId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching user:', error);
+    try {
+      return await prisma.user.findUnique({
+        where: { phone_id: phoneId },
+      });
+    } catch (error) {
+      console.error('Error fetching user with Prisma:', error);
+      return null;
     }
-    return data;
   },
 
   async createUser(phoneId: string): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert([{ phone_id: phoneId, sub_status: 'trial', reminder_count: 0 }])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error creating user:', error);
+    try {
+      return await prisma.user.create({
+        data: {
+          phone_id: phoneId,
+          sub_status: 'trial',
+          reminder_count: 0,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating user with Prisma:', error);
       return null;
     }
-    return data;
   },
 
   async incrementReminderCount(userId: string) {
-    const { error } = await supabase.rpc('increment_reminder_count', { user_id_param: userId });
-    if (error) {
-      // Fallback if RPC doesn't exist yet
-      const { data: user } = await supabase.from('users').select('reminder_count').eq('id', userId).single();
-      await supabase.from('users').update({ reminder_count: (user?.reminder_count || 0) + 1 }).eq('id', userId);
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          reminder_count: {
+            increment: 1,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error incrementing reminder count with Prisma:', error);
     }
   },
 
   async createReminder(userId: string, task: string, scheduledAt: string): Promise<Reminder | null> {
-    const { data, error } = await supabase
-      .from('reminders')
-      .insert([{ user_id: userId, task, scheduled_at: scheduledAt, status: 'pending' }])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error creating reminder:', error);
+    try {
+      return await prisma.reminder.create({
+        data: {
+          user_id: userId,
+          task,
+          scheduled_at: new Date(scheduledAt),
+          status: 'pending',
+        },
+      });
+    } catch (error) {
+      console.error('Error creating reminder with Prisma:', error);
       return null;
     }
-
-    return data;
   }
 };

@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Check Subscription & Limit
-  if (user.sub_status === 'trial' && user.reminder_count >= 5) {
+  const reminderCount = user.reminder_count ?? 0;
+  if (user.sub_status === 'trial' && reminderCount >= 5) {
     await sendTelegramMessage(chatId, `Upgrade for unlimited: ${process.env.RAZORPAY_CHECKOUT_LINK}`);
     return NextResponse.json({ success: true });
   }

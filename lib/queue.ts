@@ -4,7 +4,7 @@ import twilio from 'twilio';
 
 const redisUrl = process.env.UPSTASH_REDIS_URL;
 
-const connection = redisUrl 
+const connection = (redisUrl && !redisUrl.includes('your-redis-url'))
   ? new IORedis(redisUrl, { 
       maxRetriesPerRequest: null,
       // Upstash Redis usually requires TLS, which IORedis handles with rediss://
@@ -13,7 +13,7 @@ const connection = redisUrl
 
 export const reminderQueue = connection ? new Queue('reminder-queue', { connection }) : null;
 
-const twilioClient = (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
+const twilioClient = (process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && process.env.TWILIO_AUTH_TOKEN)
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
