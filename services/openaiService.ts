@@ -1,8 +1,18 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient: OpenAI | null = null;
+
+const getOpenAI = () => {
+  if (!openaiClient) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.warn("OPENAI_API_KEY is missing. AI features will be disabled.");
+      return null;
+    }
+    openaiClient = new OpenAI({ apiKey });
+  }
+  return openaiClient;
+};
 
 export interface ParsedReminder {
   task: string;
@@ -11,6 +21,9 @@ export interface ParsedReminder {
 
 export const parseReminderIntent = async (message: string): Promise<ParsedReminder | null> => {
   try {
+    const openai = getOpenAI();
+    if (!openai) return null;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [

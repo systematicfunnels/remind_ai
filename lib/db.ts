@@ -45,7 +45,7 @@ export const db = {
   },
 
   async incrementReminderCount(userId: string) {
-    const { data, error } = await supabase.rpc('increment_reminder_count', { user_id_param: userId });
+    const { error } = await supabase.rpc('increment_reminder_count', { user_id_param: userId });
     if (error) {
       // Fallback if RPC doesn't exist yet
       const { data: user } = await supabase.from('users').select('reminder_count').eq('id', userId).single();

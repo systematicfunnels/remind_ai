@@ -4,8 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { 
   Zap, MessageSquare, Smartphone, 
-  ArrowRight, Github, Sparkles,
-  CheckCircle2, Shield, Mic, Brain
+  Shield, Mic, Brain
 } from 'lucide-react';
 
 export default function LandingPage() {

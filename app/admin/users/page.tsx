@@ -4,24 +4,52 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Trash2, MoreHorizontal
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Badge, Skeleton, EmptyState } from '@/components/admin/AdminUI';
+import { getAppData } from '@/services/storageService';
+
+interface UserData {
+  id: string;
+  phone_id: string;
+  sub_status: string;
+  reminder_count: number;
+  created_at: string;
+}
 
 export default function UserListPage() {
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   
   useEffect(() => {
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (!error) {
-        setUsers(data || []);
+      if (!isSupabaseConfigured) {
+        // Fallback to local storage for demo
+        const appData = getAppData();
+        setUsers(appData.users.map(u => ({
+          id: u.id,
+          phone_id: u.phone,
+          sub_status: u.subscriptionStatus === 'premium' ? 'paid' : 'trial',
+          reminder_count: u.reminderCount,
+          created_at: u.createdAt
+        })));
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (!error) {
+          setUsers(data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchUsers();

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Badge, Toast } from '@/components/admin/AdminUI';
 
-const ToggleSetting = ({ title, icon, color, initialValue }: { title: string; icon: React.ReactElement<any>; color: string; initialValue?: boolean }) => {
+const ToggleSetting = ({ title, icon, color, initialValue }: { title: string; icon: React.ReactElement<{ size?: number }>; color: string; initialValue?: boolean }) => {
   const [enabled, setEnabled] = useState(initialValue || false);
   
   // Dynamic class construction for Tailwind colors

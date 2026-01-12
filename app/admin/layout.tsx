@@ -8,6 +8,7 @@ import {
   Menu, X, LogOut, Terminal, Zap, ChevronRight
 } from 'lucide-react';
 import { Toast, Tooltip } from '@/components/admin/AdminUI';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 const menuItems = [
   { icon: <BarChart3 size={20} />, label: 'Overview', path: '/admin' },
@@ -75,11 +76,6 @@ export default function AdminLayout({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
 
   return (
     <div className="flex h-screen bg-[#020617] text-slate-100 overflow-hidden font-sans selection:bg-indigo-500/30">
@@ -171,10 +167,16 @@ export default function AdminLayout({
               <Menu size={20} />
             </button>
             <div className="hidden sm:block">
-              <h2 className="text-lg font-black tracking-tight text-white uppercase">
-                {menuItems.find(i => i.path === pathname)?.label || 'Console'}
-              </h2>
-            </div>
+            <h2 className="text-lg font-black tracking-tight text-white uppercase flex items-center gap-3">
+              {menuItems.find(i => i.path === pathname)?.label || 'Console'}
+              {!isSupabaseConfigured && (
+                <span className="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full tracking-widest flex items-center gap-1.5 animate-pulse">
+                  <div className="w-1 h-1 bg-amber-500 rounded-full" />
+                  Demo Mode
+                </span>
+              )}
+            </h2>
+          </div>
           </div>
           
           <div className="flex items-center gap-3 sm:gap-6">

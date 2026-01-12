@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { scheduleReminder } from '@/lib/queue';
 import { parseReminderIntent } from '@/services/openaiService';
 
+export const dynamic = 'force-dynamic';
+
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 

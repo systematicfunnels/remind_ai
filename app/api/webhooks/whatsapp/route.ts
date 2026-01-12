@@ -4,6 +4,8 @@ import { scheduleReminder } from '@/lib/queue';
 import { parseReminderIntent } from '@/services/openaiService';
 import twilio from 'twilio';
 
+export const dynamic = 'force-dynamic';
+
 const twilioClient = (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;

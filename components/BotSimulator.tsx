@@ -2,11 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Send, Smartphone, User, Bot, Mic, 
-  Paperclip, MoreVertical, CheckCheck, Clock,
-  ChevronLeft, Bell, Zap
+  Send, Smartphone, Bot, Mic, 
+  Paperclip, MoreVertical, CheckCheck,
+  ChevronLeft, Zap
 } from 'lucide-react';
-import { processMessageWithAI, AIResponse } from '@/services/geminiService';
+import { processMessageWithAI } from '@/services/geminiService';
 import { getAppData, saveAppData, addLog } from '@/services/storageService';
 import { Reminder } from '@/types';
 

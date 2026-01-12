@@ -2,33 +2,71 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell, Filter
+  Bell
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { Skeleton, EmptyState, Badge } from '@/components/admin/AdminUI';
+import { Reminder } from '@/types';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { Skeleton, EmptyState } from '@/components/admin/AdminUI';
+import { getAppData } from '@/services/storageService';
+
+interface ReminderWithUser {
+  id: string;
+  task: string;
+  scheduled_at: string;
+  status: string;
+  users?: {
+    phone_id: string;
+  };
+}
 
 export default function ReminderListPage() {
   const [loading, setLoading] = useState(true);
-  const [reminders, setReminders] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<ReminderWithUser[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done'>('all');
 
   useEffect(() => {
     const fetchReminders = async () => {
-      let query = supabase
-        .from('reminders')
-        .select('*, users(phone_id)')
-        .order('scheduled_at', { ascending: false });
-      
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+      if (!isSupabaseConfigured) {
+        // Fallback for demo
+        const appData = getAppData();
+        let filtered = appData.reminders.map((r: Reminder) => ({
+          ...r,
+          scheduled_at: r.scheduledAt,
+          users: { phone_id: appData.users.find(u => u.id === r.userId)?.phone || 'Unknown' }
+        }));
+        
+        if (statusFilter !== 'all') {
+          filtered = filtered.filter(r => r.status === (statusFilter === 'done' ? 'completed' : 'pending'));
+        }
+        
+        setReminders(filtered.map(r => ({
+          ...r,
+          status: r.status === 'completed' ? 'done' : r.status
+        })));
+        setLoading(false);
+        return;
       }
 
-      const { data, error } = await query;
-      
-      if (!error) {
-        setReminders(data || []);
+      try {
+        let query = supabase
+          .from('reminders')
+          .select('*, users(phone_id)')
+          .order('scheduled_at', { ascending: false });
+        
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+
+        const { data, error } = await query;
+        
+        if (!error) {
+          setReminders(data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch reminders:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchReminders();

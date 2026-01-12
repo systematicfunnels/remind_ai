@@ -65,7 +65,7 @@ export const startWorker = () => {
   }
 
   const worker = new Worker('reminder-queue', async (job: Job) => {
-    const { userId, phoneId, task, platform, reminderId } = job.data;
+    const { phoneId, task, platform, reminderId } = job.data;
 
     console.log(`Processing reminder: ${task} for ${phoneId}`);
 

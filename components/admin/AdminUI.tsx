@@ -27,11 +27,11 @@ export const Badge = ({ children, variant = 'default' }: BadgeProps) => {
   );
 };
 
-export const Skeleton = ({ className, ...props }: { className?: string; [key: string]: any }) => (
+export const Skeleton = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`bg-slate-800/30 animate-pulse rounded-xl ${className}`} {...props} />
 );
 
-export const Tooltip = ({ text, children, visible, ...props }: { text: string; children: React.ReactNode; visible: boolean; [key: string]: any }) => (
+export const Tooltip = ({ text, children, visible, ...props }: { text: string; children: React.ReactNode; visible: boolean } & React.HTMLAttributes<HTMLDivElement>) => (
   <div className="relative group inline-block w-full" {...props}>
     {children}
     {visible && (
@@ -42,7 +42,7 @@ export const Tooltip = ({ text, children, visible, ...props }: { text: string; c
   </div>
 );
 
-export const EmptyState = ({ icon, title, description }: { icon: React.ReactElement<any>; title: string; description: string }) => (
+export const EmptyState = ({ icon, title, description }: { icon: React.ReactElement<{ size?: number }>; title: string; description: string }) => (
   <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in duration-700">
     <div className="p-5 bg-slate-900/50 rounded-3xl border border-slate-800 mb-6 text-slate-600 shadow-inner">
       {React.cloneElement(icon, { size: 40 })}
