@@ -1,0 +1,7 @@
+{
+  "name": "RemindAI - WhatsApp & Telegram AI SaaS",
+  "description": "A professional AI-powered reminder service that integrates with WhatsApp and Telegram. Features voice note transcription, scheduled reminders, and a comprehensive admin dashboard.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
