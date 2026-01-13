@@ -10,7 +10,7 @@ import AdminChart from '@/components/admin/AdminChart';
 
 export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<{ totalUsers: number, totalReminders: number, mrr: number } | null>(null);
+  const [stats, setStats] = useState<{ totalUsers: number, totalReminders: number, mrr: number, chartData: any[] } | null>(null);
   
   useEffect(() => {
     const fetchStats = async () => {
@@ -19,7 +19,8 @@ export default function OverviewPage() {
         setStats({
           totalUsers: data.totalUsers,
           totalReminders: data.totalReminders,
-          mrr: data.paidUsers * 500
+          mrr: data.paidUsers * 500,
+          chartData: data.chartData
         });
       } catch (error) {
         console.error('Failed to fetch stats:', error);
@@ -72,7 +73,7 @@ export default function OverviewPage() {
         <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3 italic uppercase tracking-tight">
           <Activity size={20} className="text-indigo-400" /> System Velocity
         </h3>
-        <AdminChart />
+        <AdminChart data={stats.chartData} />
       </div>
     </div>
   );

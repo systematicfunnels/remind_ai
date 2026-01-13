@@ -8,7 +8,7 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export type Intent = 'CREATE' | 'LIST' | 'COMPLETE' | 'UNKNOWN';
+export type Intent = 'CREATE' | 'LIST' | 'COMPLETE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
 
 export interface AIResponse {
   intent: Intent;
@@ -16,6 +16,7 @@ export interface AIResponse {
   delayMinutes?: number;
   recurrence?: RecurrenceRule;
   query?: string;
+  timezone?: string;
 }
 
 const fallbackParse = (message: string): AIResponse => {
@@ -28,6 +29,18 @@ const fallbackParse = (message: string): AIResponse => {
   if (msg.includes('done') || msg.includes('complete') || msg.includes('finish') || msg.includes('mark')) {
     const query = msg.replace(/done|complete|finish|mark|with|the|as/g, '').trim();
     return { intent: 'COMPLETE', query: query || 'task' };
+  }
+
+  if (msg.includes('timezone') || msg.includes('time zone') || msg.includes('i am in') || msg.includes('located in')) {
+    return { intent: 'TIMEZONE' };
+  }
+
+  if (msg.includes('status') || msg.includes('billing') || msg.includes('subscription')) {
+    return { intent: 'BILLING' };
+  }
+
+  if (msg.includes('erase') || msg.includes('delete all my data')) {
+    return { intent: 'ERASE' };
   }
 
   // Improved Create Heuristics
@@ -55,9 +68,8 @@ const fallbackParse = (message: string): AIResponse => {
   return { intent: 'UNKNOWN' };
 };
 
-export const processMessageWithAI = async (message: string): Promise<AIResponse> => {
+export const processMessageWithAI = async (message: string, userTimezone: string = 'UTC'): Promise<AIResponse> => {
   const ai = getAI();
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const now = new Date();
   const currentTimeStr = now.toLocaleString("en-US", { timeZone: userTimezone });
 
@@ -72,8 +84,18 @@ export const processMessageWithAI = async (message: string): Promise<AIResponse>
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.
-        Reference UTC Time: ${new Date().toISOString()}.
-        Valid Intents: CREATE, LIST, COMPLETE, UNKNOWN.
+        Reference User Local Time: ${currentTimeStr} (${userTimezone}).
+        
+        Intents:
+        - CREATE: Set reminder. Fields: task (string), delayMinutes (number), recurrence (none|daily|weekly|monthly).
+        - LIST: Show reminders.
+        - COMPLETE: Mark task done. Fields: query (string).
+        - TIMEZONE: Update location. Fields: timezone (e.g., "Europe/London").
+        - BILLING: Check status/subscription.
+        - ERASE: Delete all personal data.
+        - HELP: Instructions.
+        - UNKNOWN: Fallback.
+
         Always include delayMinutes for CREATE (relative to now).`,
         responseMimeType: "application/json",
       }

@@ -19,12 +19,40 @@ export async function getAdminStats() {
     prisma.reminder.count({ where: { status: 'pending' } }),
   ]);
 
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    return d;
+  }).reverse();
+
+  const chartData = await Promise.all(last7Days.map(async (date) => {
+    const nextDay = new Date(date);
+    nextDay.setDate(date.getDate() + 1);
+
+    const [reminders, users] = await Promise.all([
+      prisma.reminder.count({
+        where: { created_at: { gte: date, lt: nextDay } }
+      }),
+      prisma.user.count({
+        where: { created_at: { gte: date, lt: nextDay } }
+      })
+    ]);
+
+    return {
+      name: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      reminders,
+      users
+    };
+  }));
+
   return {
     totalUsers,
     paidUsers,
     totalReminders,
     pendingReminders,
     freeUsers: totalUsers - paidUsers,
+    chartData,
   };
 }
 

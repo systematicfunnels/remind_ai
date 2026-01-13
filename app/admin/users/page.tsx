@@ -19,6 +19,40 @@ interface UserData {
   created_at: Date | null;
 }
 
+function ActionButton({ icon: Icon, onClick, color, label }: { icon: any, onClick: () => void, color: string, label: string }) {
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (confirming) {
+      const timer = setTimeout(() => setConfirming(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirming]);
+
+  const colorStyles: Record<string, string> = {
+    red: confirming ? 'bg-red-600 text-white' : 'text-slate-500 hover:text-red-400 hover:bg-red-500/10',
+    amber: confirming ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-amber-400 hover:bg-amber-500/10',
+  };
+
+  return (
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        if (confirming) {
+          onClick();
+          setConfirming(false);
+        } else {
+          setConfirming(true);
+        }
+      }}
+      className={`p-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider ${colorStyles[color]}`}
+    >
+      <Icon size={16} />
+      {confirming && <span>{label}?</span>}
+    </button>
+  );
+}
+
 export default function UserListPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserData[]>([]);
@@ -45,17 +79,13 @@ export default function UserListPage() {
   };
 
   const handleReset = async (id: string) => {
-    if (confirm('Reset usage for this user?')) {
-      await resetUserUsage(id);
-      fetchUsers();
-    }
+    await resetUserUsage(id);
+    fetchUsers();
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      await deleteUser(id);
-      fetchUsers();
-    }
+    await deleteUser(id);
+    fetchUsers();
   };
 
   return (
@@ -116,26 +146,26 @@ export default function UserListPage() {
                       <div className="text-sm font-black text-slate-300 italic">{user.reminder_count}</div>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleReset(user.id)}
-                          className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-amber-400 title='Reset Usage'"
-                        >
-                          <RefreshCw size={14} />
-                        </button>
+                      <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handleBlock(user.id, !!user.is_blocked)}
-                          className={`p-2 hover:bg-slate-800 rounded-lg ${user.is_blocked ? 'text-emerald-400' : 'text-rose-400'}`}
+                          className={`p-2.5 rounded-xl transition-all duration-300 ${user.is_blocked ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' : 'text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10'}`}
                           title={user.is_blocked ? 'Unblock' : 'Block'}
                         >
-                          <ShieldCheck size={14} />
+                          <ShieldCheck size={16} />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(user.id)}
-                          className="p-2 hover:bg-rose-500/10 rounded-lg text-slate-500 hover:text-rose-500"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <ActionButton 
+                          icon={RefreshCw} 
+                          onClick={() => handleReset(user.id)} 
+                          color="amber" 
+                          label="Reset" 
+                        />
+                        <ActionButton 
+                          icon={Trash2} 
+                          onClick={() => handleDelete(user.id)} 
+                          color="red" 
+                          label="Delete" 
+                        />
                       </div>
                     </td>
                   </tr>

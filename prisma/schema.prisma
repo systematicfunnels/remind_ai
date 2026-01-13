@@ -16,12 +16,15 @@ model User {
   sub_status     String?    @default("trial")
   is_blocked     Boolean?   @default(false)
   reminder_count Int?       @default(0)
+  timezone       String?    @default("UTC")
   last_active_at DateTime?  @default(now()) @db.Timestamp(6)
   payment_id     String?
   created_at     DateTime?  @default(now()) @db.Timestamp(6)
+  is_erased      Boolean?   @default(false)
   reminders      Reminder[]
 
   @@map("users")
+  @@index([phone_id])
 }
 
 model Reminder {
@@ -36,6 +39,8 @@ model Reminder {
   user           User?     @relation(fields: [user_id], references: [id])
 
   @@map("reminders")
+  @@index([user_id, status])
+  @@index([scheduled_at])
 }
 
 model LoginAttempt {
@@ -45,4 +50,5 @@ model LoginAttempt {
   last_tried DateTime @default(now()) @db.Timestamp(6)
 
   @@map("login_attempts")
+  @@index([ip_address])
 }

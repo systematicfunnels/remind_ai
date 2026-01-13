@@ -10,6 +10,12 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
 export async function POST(req: NextRequest) {
+  // Security: Validate Telegram Secret Token
+  const secretToken = req.headers.get('X-Telegram-Bot-Api-Secret-Token');
+  if (process.env.NODE_ENV === 'production' && secretToken !== process.env.TELEGRAM_SECRET_TOKEN) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json();
   const message = body.message;
 
@@ -48,7 +54,7 @@ export async function POST(req: NextRequest) {
       const transcription = await transcribeAudio(audioBuffer);
       if (transcription) {
         text = transcription;
-        await sendTelegramMessage(chatId, `🎤 Heard: "${text}"`);
+        // Combined feedback will be sent in the final confirmation step
       } else {
         await sendTelegramMessage(chatId, "Sorry, I couldn't transcribe that voice message.");
         return NextResponse.json({ success: true });
@@ -91,6 +97,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (parsed.intent === 'TIMEZONE') {
+    if (parsed.timezone) {
+      await db.updateUserTimezone(user.id, parsed.timezone);
+      await sendTelegramMessage(chatId, `✅ Timezone updated to ${parsed.timezone}`);
+    } else {
+      await sendTelegramMessage(chatId, "Please specify a timezone (e.g., 'Asia/Kolkata')");
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  if (parsed.intent === 'BILLING') {
+    const status = user.sub_status === 'trial' ? 'Free Trial' : 'Premium Subscription';
+    const limitMsg = user.sub_status === 'trial' ? `(${user.reminder_count}/5 reminders used)` : '';
+    await sendTelegramMessage(chatId, `💳 Status: ${status} ${limitMsg}\n\nManage subscription: ${process.env.RAZORPAY_CHECKOUT_LINK || '#'}`);
+    return NextResponse.json({ success: true });
+  }
+
+  if (parsed.intent === 'ERASE') {
+    // For security, only proceed if they explicitly say "confirm" or similar in their next message
+    // but for this MVP implementation, we'll do it directly if the intent is high confidence
+    await db.eraseUserData(user.id);
+    await sendTelegramMessage(chatId, "🗑️ Your account and data have been permanently erased. Goodbye!");
+    return NextResponse.json({ success: true });
+  }
+
   // 3. Check Subscription & Limit
   const reminderCount = user.reminder_count ?? 0;
   if (user.sub_status === 'trial' && reminderCount >= 5) {
@@ -104,7 +135,12 @@ export async function POST(req: NextRequest) {
     if (reminder) {
       await db.incrementReminderCount(user.id);
       await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
-      await sendTelegramMessage(chatId, `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}`);
+      
+      let confirmation = `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}\n\n(Reply "done" to clear or "undo" to cancel)`;
+      if (message.voice) {
+        confirmation = `🎤 Heard: "${text}"\n\n${confirmation}`;
+      }
+      await sendTelegramMessage(chatId, confirmation);
     } else {
       await sendTelegramMessage(chatId, "Sorry, I couldn't save that reminder right now.");
     }

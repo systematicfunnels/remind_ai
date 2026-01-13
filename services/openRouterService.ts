@@ -1,7 +1,8 @@
 export interface OpenRouterParsedResponse {
-  intent: 'CREATE' | 'LIST' | 'DONE' | 'UNKNOWN';
+  intent: 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
   task?: string;
   time?: string;
+  timezone?: string;
 }
 
 export const parseWithOpenRouter = async (message: string): Promise<OpenRouterParsedResponse | null> => {
@@ -25,11 +26,20 @@ export const parseWithOpenRouter = async (message: string): Promise<OpenRouterPa
         messages: [
           {
             role: "system",
-            content: `You are a reminder extraction AI. Extract the task and the scheduled time from the user's message.
-            Return ONLY a JSON object in this format: {"intent": "CREATE|LIST|DONE|UNKNOWN", "task": "string", "time": "ISO8601 string"}.
+            content: `You are a reminder extraction AI. Extract the intent and details from the user's message.
+            Valid Intents:
+            - CREATE: Set reminder. Fields: "task" (string), "time" (ISO8601 string).
+            - LIST: Show reminders.
+            - DONE: Mark task done.
+            - TIMEZONE: Update location. Fields: "timezone" (e.g., "Asia/Kolkata").
+            - BILLING: Check status.
+            - ERASE: Delete data.
+            - HELP: Instructions.
+            - UNKNOWN: Fallback.
+
+            Return ONLY a JSON object in this format: {"intent": "string", "task": "string", "time": "ISO8601", "timezone": "string"}.
             Current UTC time: ${new Date().toISOString()}.
-            If the user specifies a relative time, calculate it relative to the provided UTC time.
-            If the user wants to list reminders, intent is LIST. If they are done, intent is DONE.`
+            `
           },
           {
             role: "user",

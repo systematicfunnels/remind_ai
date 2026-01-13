@@ -14,9 +14,11 @@ const getOpenAI = () => {
   return openaiClient;
 };
 
-export interface ParsedReminder {
-  task: string;
-  time: string; // ISO 8601 string or descriptive time
+export interface ParsedIntent {
+  intent: 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
+  task?: string;
+  time?: string; // ISO 8601 string
+  timezone?: string; // For TIMEZONE intent
 }
 
 export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | null> => {
@@ -37,7 +39,7 @@ export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | nul
   }
 };
 
-export const parseReminderIntent = async (message: string): Promise<ParsedReminder | null> => {
+export const parseReminderIntent = async (message: string): Promise<ParsedIntent | null> => {
   try {
     const openai = getOpenAI();
     if (!openai) return null;
@@ -47,11 +49,22 @@ export const parseReminderIntent = async (message: string): Promise<ParsedRemind
       messages: [
         {
           role: "system",
-          content: `You are a reminder extraction AI. Extract the task and the scheduled time from the user's message. 
-          Return ONLY a JSON object in this format: {"task": "string", "time": "ISO8601 string"}.
+          content: `You are a intent extraction AI for RemindAI. 
+          Extract the intent and relevant details from the user's message. 
+          
+          Valid Intents:
+          - CREATE: User wants to set a reminder. Extract "task" and "time" (ISO8601).
+          - LIST: User wants to see pending reminders.
+          - DONE: User wants to complete a reminder.
+          - TIMEZONE: User mentions their location or timezone. Extract "timezone" (e.g., "Asia/Kolkata").
+          - BILLING: User asks about subscription, status, or usage.
+          - ERASE: User wants to delete their data.
+          - HELP: User asks for help.
+          - UNKNOWN: Intent not clear.
+
+          Return ONLY a JSON object in this format: {"intent": "string", "task": "string", "time": "ISO8601", "timezone": "string"}.
           Current UTC time: ${new Date().toISOString()}.
-          If the user specifies a relative time (e.g., "tomorrow 7PM"), calculate it relative to the provided UTC time.
-          If you cannot extract both, return null.`
+          `
         },
         {
           role: "user",
@@ -64,11 +77,7 @@ export const parseReminderIntent = async (message: string): Promise<ParsedRemind
     const content = response.choices[0].message.content;
     if (!content) return null;
 
-    const parsed = JSON.parse(content);
-    if (parsed.task && parsed.time) {
-      return parsed as ParsedReminder;
-    }
-    return null;
+    return JSON.parse(content) as ParsedIntent;
   } catch (error) {
     console.error("OpenAI Parsing Error:", error);
     return null;

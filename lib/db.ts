@@ -6,9 +6,12 @@ export interface User {
   channel: string | null;
   sub_status: string | null;
   reminder_count: number | null;
+  timezone: string | null;
   is_blocked: boolean | null;
   payment_id: string | null;
   last_active_at: Date | null;
+  is_erased: boolean | null;
+  created_at: Date | null;
 }
 
 export interface Reminder {
@@ -29,14 +32,17 @@ export const db = {
       });
       
       if (user) {
-        // Update last_active_at whenever we fetch a user for an interaction
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { last_active_at: new Date() }
-        });
+        // Update last_active_at only if it hasn't been updated in the last hour to save DB writes
+        const lastActive = user.last_active_at ? new Date(user.last_active_at).getTime() : 0;
+        if (Date.now() - lastActive > 1000 * 60 * 60) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { last_active_at: new Date() }
+          });
+        }
       }
       
-      return user as User | null;
+      return user as any as User | null;
     } catch (error) {
       console.error('Error fetching user with Prisma:', error);
       return null;
@@ -53,7 +59,7 @@ export const db = {
           reminder_count: 0,
           last_active_at: new Date(),
         },
-      }) as User | null;
+      }) as any as User | null;
     } catch (error) {
       console.error('Error creating user with Prisma:', error);
       return null;
@@ -82,7 +88,7 @@ export const db = {
       return await prisma.user.update({
         where: { id: userId },
         data: { is_blocked: blocked }
-      }) as User | null;
+      }) as any as User | null;
     } catch (error) {
       console.error('Error blocking user:', error);
       return null;
@@ -180,6 +186,40 @@ export const db = {
   },
 
   getHelpMessage(): string {
-    return "🛠️ *RemindAI Help Menu*\n\n*Commands:*\n• *CREATE*: Just type your task and time naturally (e.g., 'remind me to pay bills on Friday at 9am')\n• *LIST*: View your next 10 pending reminders\n• *DONE*: Mark your most recent pending reminder as completed\n• *HELP*: Show this menu\n\n*Voice Support:*\nSend me a voice note and I'll transcribe and schedule it for you!\n\n*Subscription:*\nTrial users get 5 reminders. Upgrade to Premium for unlimited access! 🚀";
+    return "🛠️ *RemindAI Help Menu*\n\n*Commands:*\n• *CREATE*: Just type your task and time naturally (e.g., 'remind me to pay bills on Friday at 9am')\n• *LIST*: View your next 10 pending reminders\n• *DONE*: Mark your most recent pending reminder as completed\n• *TIMEZONE*: Set your local timezone (e.g., 'I am in New York' or 'timezone Asia/Kolkata')\n• *STATUS*: Check your subscription and usage\n• *ERASE*: Delete all your data from our system (requires confirmation)\n• *HELP*: Show this menu\n\n*Voice Support:*\nSend me a voice note and I'll transcribe and schedule it for you!\n\n*Subscription:*\nTrial users get 5 reminders. Upgrade to Premium for unlimited access! 🚀";
+  },
+
+  async updateUserTimezone(userId: string, timezone: string) {
+    try {
+      return await prisma.user.update({
+        where: { id: userId },
+        data: { timezone } as any
+      });
+    } catch (error) {
+      console.error('Error updating timezone:', error);
+      return null;
+    }
+  },
+
+  async eraseUserData(userId: string) {
+    try {
+      // We don't delete the user record to prevent ID reuse, but we clear all PII
+      await prisma.reminder.deleteMany({
+        where: { user_id: userId }
+      });
+      return await prisma.user.update({
+        where: { id: userId },
+        data: {
+          phone_id: `ERASED_${userId}`,
+          is_erased: true,
+          is_blocked: true,
+          payment_id: null,
+          reminder_count: 0
+        } as any
+      });
+    } catch (error) {
+      console.error('Error erasing user data:', error);
+      return null;
+    }
   }
 };

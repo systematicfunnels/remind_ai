@@ -25,7 +25,10 @@ export default function LandingPage() {
           <span className="text-xl font-black tracking-tighter text-white uppercase italic">RemindAI</span>
         </div>
         {/* Discreet Admin Link */}
-        <Link href="/admin" className="opacity-0 hover:opacity-100 transition-opacity text-[8px] font-black uppercase tracking-[0.4em] text-slate-800">
+        <Link 
+          href="/admin" 
+          className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-800/40 hover:text-indigo-400 focus:text-indigo-400 transition-colors outline-none"
+        >
           Root Access
         </Link>
       </nav>
@@ -174,17 +177,53 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Simple Footer */}
-      <footer className="px-6 lg:px-12 py-12 border-t border-slate-900/50 text-center">
-        <div className="flex items-center justify-center gap-3 mb-6 opacity-50 grayscale">
-          <div className="p-1 bg-slate-800 rounded-lg">
-            <Zap size={14} className="text-white fill-white" />
+      {/* Enhanced Footer */}
+      <footer className="px-6 lg:px-12 py-12 border-t border-slate-900/50 bg-slate-950/20">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-indigo-600 rounded-lg">
+                <Zap size={16} className="text-white fill-white" />
+              </div>
+              <span className="text-lg font-black tracking-tighter text-white uppercase italic">RemindAI</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">System Operational</span>
+            </div>
           </div>
-          <span className="text-sm font-black tracking-tighter text-white uppercase italic">RemindAI</span>
+
+          <div className="flex flex-wrap justify-center gap-x-12 gap-y-4">
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Legal</span>
+              <Link href="/privacy" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">Terms of Service</Link>
+            </div>
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Platforms</span>
+              <Link href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "#"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">WhatsApp</Link>
+              <Link href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "#"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">Telegram</Link>
+            </div>
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Support</span>
+              <Link href="mailto:support@remindai.com" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">Contact Us</Link>
+              <Link href="/help" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">Help Center</Link>
+            </div>
+          </div>
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">
-          © 2026 RemindAI. All Rights Reserved.
-        </p>
+        <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">
+            © 2026 RemindAI. All Rights Reserved.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-2">
+              <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">W</div>
+              <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">T</div>
+              <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">I</div>
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-700">Multi-Channel Support</span>
+          </div>
+        </div>
       </footer>
     </div>
   );

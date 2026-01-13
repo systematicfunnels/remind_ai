@@ -11,20 +11,27 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-const data = [
-  { name: 'Mon', reminders: 45, users: 12 },
-  { name: 'Tue', reminders: 52, users: 15 },
-  { name: 'Wed', reminders: 48, users: 18 },
-  { name: 'Thu', reminders: 61, users: 22 },
-  { name: 'Fri', reminders: 55, users: 25 },
-  { name: 'Sat', reminders: 67, users: 28 },
-  { name: 'Sun', reminders: 72, users: 31 },
-];
+interface ChartData {
+  name: string;
+  reminders: number;
+  users: number;
+}
 
-export default function AdminChart() {
+export default function AdminChart({ data }: { data: ChartData[] }) {
+  // Use a state to track if the component has mounted to prevent SSR issues
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="h-[300px] w-full mt-4 bg-slate-900/10 rounded-3xl animate-pulse" />;
+  }
+
   return (
-    <div className="h-[300px] w-full mt-4">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full mt-4" style={{ minWidth: 0, minHeight: 0 }}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart
           data={data}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

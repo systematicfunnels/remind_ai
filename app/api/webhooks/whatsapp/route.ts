@@ -13,6 +13,16 @@ const twilioClient = (process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && proces
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
+  
+  // Security: Validate Twilio Signature
+  const signature = req.headers.get('x-twilio-signature') || '';
+  const url = process.env.WHATSAPP_WEBHOOK_URL || '';
+  const params = Object.fromEntries(formData.entries());
+
+  if (process.env.NODE_ENV === 'production' && !twilio.validateRequest(process.env.TWILIO_AUTH_TOKEN!, signature, url, params)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const from = formData.get('From') as string; // WhatsApp number
   let body = (formData.get('Body') as string || '').trim();
   const mediaUrl = formData.get('MediaUrl0') as string;
@@ -47,7 +57,7 @@ export async function POST(req: NextRequest) {
       const transcription = await transcribeAudio(audioBuffer);
       if (transcription) {
         body = transcription;
-        await sendWhatsAppMessage(from, `🎤 Heard: "${body}"`);
+        // Combined feedback will be sent in the final confirmation step
       } else {
         await sendWhatsAppMessage(from, "Sorry, I couldn't transcribe that voice message.");
         return NextResponse.json({ success: true });
@@ -90,6 +100,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (parsed.intent === 'TIMEZONE') {
+    if (parsed.timezone) {
+      await db.updateUserTimezone(user.id, parsed.timezone);
+      await sendWhatsAppMessage(from, `✅ Timezone updated to ${parsed.timezone}`);
+    } else {
+      await sendWhatsAppMessage(from, "Please specify a timezone (e.g., 'Asia/Kolkata')");
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  if (parsed.intent === 'BILLING') {
+    const status = user.sub_status === 'trial' ? 'Free Trial' : 'Premium Subscription';
+    const limitMsg = user.sub_status === 'trial' ? `(${user.reminder_count}/5 reminders used)` : '';
+    await sendWhatsAppMessage(from, `💳 Status: ${status} ${limitMsg}\n\nManage subscription: ${process.env.RAZORPAY_CHECKOUT_LINK || '#'}`);
+    return NextResponse.json({ success: true });
+  }
+
+  if (parsed.intent === 'ERASE') {
+    await db.eraseUserData(user.id);
+    await sendWhatsAppMessage(from, "🗑️ Your account and data have been permanently erased. Goodbye!");
+    return NextResponse.json({ success: true });
+  }
+
   // 3. Check Subscription & Limit
   const reminderCount = user.reminder_count ?? 0;
   if (user.sub_status === 'trial' && reminderCount >= 5) {
@@ -103,7 +136,12 @@ export async function POST(req: NextRequest) {
     if (reminder) {
       await db.incrementReminderCount(user.id);
       await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
-      await sendWhatsAppMessage(from, `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}`);
+      
+      let confirmation = `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}\n\n(Reply "done" to clear or "undo" to cancel)`;
+      if (mediaUrl && mediaType?.startsWith('audio/')) {
+        confirmation = `🎤 Heard: "${body}"\n\n${confirmation}`;
+      }
+      await sendWhatsAppMessage(from, confirmation);
     } else {
       await sendWhatsAppMessage(from, "Sorry, I couldn't save that reminder right now.");
     }
