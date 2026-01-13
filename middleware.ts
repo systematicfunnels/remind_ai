@@ -21,11 +21,9 @@ export function middleware(request: NextRequest) {
     }
     
     if (!isAuthorized) {
-      // If we're not authorized, we allow it in development for ease of use
-      // but in production we redirect to login
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.redirect(new URL('/admin/login', request.url));
-      }
+      // Always redirect to login in production if not authorized
+      // In development, we can be more lenient or strict, but let's be strict to match prod
+      return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
 
@@ -33,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: ['/admin', '/admin/:path*'],
 };
