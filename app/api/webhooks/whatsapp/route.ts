@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   let user = await db.getUserByPhone(from);
   if (!user) {
     user = await db.createUser(from, 'whatsapp');
-    await sendWhatsAppMessage(from, "Hi! 5 free reminders. Say 'remind me tomorrow 7PM call mom' or send a voice message.");
+    await sendWhatsAppMessage(from, db.getWelcomeMessage());
     return NextResponse.json({ success: true });
   }
 

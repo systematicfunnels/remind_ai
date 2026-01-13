@@ -32,11 +32,11 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
   try {
     const delay = new Date(scheduledAt).getTime() - Date.now();
     
-    // We need the phone_id to send the message
+    // We need the phone_id and channel to send the message
     const { prisma } = await import('./prisma');
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { phone_id: true }
+      select: { phone_id: true, channel: true }
     });
 
     if (!user?.phone_id) {
@@ -49,10 +49,15 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
       userId,
       phoneId: user.phone_id,
       task,
-      platform: user.phone_id.startsWith('+') ? 'whatsapp' : 'telegram'
+      platform: user.channel || (user.phone_id.startsWith('+') ? 'whatsapp' : 'telegram')
     }, {
       delay: Math.max(0, delay),
-      removeOnComplete: true
+      removeOnComplete: true,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000 * 60, // 1 minute initial delay
+      }
     });
     
     console.log(`Successfully scheduled reminder ${reminderId} for ${user.phone_id} at ${scheduledAt}`);
@@ -73,7 +78,7 @@ export const startWorker = () => {
     console.log(`Processing reminder: ${task} for ${phoneId}`);
 
     try {
-      if (platform === 'whatsapp' || phoneId.startsWith('+') || phoneId.includes('whatsapp')) {
+      if (platform === 'whatsapp') {
         if (twilioClient) {
           await twilioClient.messages.create({
             from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
@@ -83,8 +88,22 @@ export const startWorker = () => {
         } else {
           console.error('Twilio client not initialized');
         }
+      } else if (platform === 'instagram') {
+        const PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
+        if (PAGE_ACCESS_TOKEN) {
+          await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: phoneId },
+              message: { text: `🔔 REMINDER: ${task}\n\nReply with "DONE" to mark as finished.` },
+            }),
+          });
+        } else {
+          console.error('INSTAGRAM_PAGE_ACCESS_TOKEN missing');
+        }
       } else {
-        // Telegram
+        // Default to Telegram
         await fetch(`${TELEGRAM_API}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -113,7 +132,22 @@ export const startWorker = () => {
     console.log(`${job.id} has completed!`);
   });
 
-  worker.on('failed', (job, err) => {
+  worker.on('failed', async (job, err) => {
     console.error(`${job?.id} has failed with ${err.message}`);
+    
+    if (job?.data?.reminderId) {
+      try {
+        const { prisma } = await import('./prisma');
+        await prisma.reminder.update({
+          where: { id: job.data.reminderId },
+          data: {
+            status: 'failed',
+            failure_reason: err.message
+          }
+        });
+      } catch (dbErr) {
+        console.error('Failed to update reminder status on job failure:', dbErr);
+      }
+    }
   });
 };

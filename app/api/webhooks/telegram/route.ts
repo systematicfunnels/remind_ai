@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   let user = await db.getUserByPhone(chatId);
   if (!user) {
     user = await db.createUser(chatId, 'telegram');
-    await sendTelegramMessage(chatId, "Hi! 5 free reminders. Say 'remind me tomorrow 7PM call mom' or send a voice message.");
+    await sendTelegramMessage(chatId, db.getWelcomeMessage());
     return NextResponse.json({ success: true });
   }
 

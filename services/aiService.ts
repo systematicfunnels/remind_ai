@@ -1,5 +1,6 @@
 import { parseReminderIntent as parseWithOpenAI } from './openaiService';
 import { processMessageWithAI as parseWithGemini } from './geminiService';
+import { parseWithOpenRouter } from './openRouterService';
 
 export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'UNKNOWN';
 
@@ -62,6 +63,24 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
     if (geminiResult.intent === 'COMPLETE') return { intent: 'DONE' };
   } catch (error) {
     console.error("AI Pipeline: Gemini failed", error);
+  }
+
+  // 3. Try OpenRouter (Final LLM Fallback)
+  try {
+    const orResult = await parseWithOpenRouter(message);
+    if (orResult) {
+      if (orResult.intent === 'CREATE' && orResult.task && orResult.time) {
+        return {
+          intent: 'CREATE',
+          task: orResult.task,
+          time: orResult.time
+        };
+      }
+      if (orResult.intent === 'LIST') return { intent: 'LIST' };
+      if (orResult.intent === 'DONE') return { intent: 'DONE' };
+    }
+  } catch (error) {
+    console.error("AI Pipeline: OpenRouter failed", error);
   }
 
   return { intent: 'UNKNOWN' };

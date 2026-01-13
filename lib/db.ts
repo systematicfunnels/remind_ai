@@ -17,6 +17,7 @@ export interface Reminder {
   task: string;
   scheduled_at: Date;
   status: string | null;
+  failure_reason?: string | null;
   done_at?: Date | null;
 }
 
@@ -172,5 +173,19 @@ export const db = {
       console.error('Error marking reminder as done:', error);
       return false;
     }
+  },
+
+  getWelcomeMessage(): string {
+    return `Welcome to RemindAI! 🚀
+
+I'm your personal assistant for quick reminders. You can send me text or voice messages like:
+• "Remind me to call mom at 7pm"
+• "Buy milk tomorrow morning"
+
+Commands:
+• LIST - See your pending reminders
+• DONE - Mark the last one as finished
+
+You have 5 free reminders to start with. Enjoy! 😊`;
   }
 };
