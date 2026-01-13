@@ -71,7 +71,7 @@ export const processMessageWithAI = async (message: string): Promise<AIResponse>
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.
-        Reference Time: ${currentTimeStr}.
+        Reference UTC Time: ${new Date().toISOString()}.
         Valid Intents: CREATE, LIST, COMPLETE, UNKNOWN.
         Always include delayMinutes for CREATE (relative to now).`,
         responseMimeType: "application/json",

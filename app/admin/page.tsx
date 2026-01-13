@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Badge, Skeleton } from '@/components/admin/AdminUI';
-import { getStats } from '@/services/storageService';
+import { getAdminStats } from '@/lib/adminActions';
 
 export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
@@ -14,32 +14,15 @@ export default function OverviewPage() {
   
   useEffect(() => {
     const fetchStats = async () => {
-      if (!isSupabaseConfigured) {
-        // Fallback to local storage stats for demo purposes
-        const localStats = getStats();
-        setStats({
-          totalUsers: localStats.totalUsers,
-          totalReminders: localStats.activeReminders + localStats.completedReminders,
-          mrr: localStats.mrr
-        });
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-        const { count: reminderCount } = await supabase.from('reminders').select('*', { count: 'exact', head: true });
-        const { data: paidUsers } = await supabase.from('users').select('id').eq('sub_status', 'paid');
-        
-        const mrr = (paidUsers?.length || 0) * 500; 
-
+        const data = await getAdminStats();
         setStats({
-          totalUsers: userCount || 0,
-          totalReminders: reminderCount || 0,
-          mrr: mrr
+          totalUsers: data.totalUsers,
+          totalReminders: data.totalReminders,
+          mrr: data.paidUsers * 500
         });
       } catch (error) {
-        console.error('Failed to fetch stats from Supabase:', error);
+        console.error('Failed to fetch stats:', error);
       } finally {
         setLoading(false);
       }
@@ -61,28 +44,6 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {!isSupabaseConfigured && (
-        <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-amber-500/20 p-3 rounded-2xl text-amber-500">
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <h4 className="font-bold text-white">Supabase Not Configured</h4>
-              <p className="text-sm text-slate-400">The dashboard is currently running in <b>Demo Mode</b> with local data.</p>
-            </div>
-          </div>
-          <a 
-            href="https://supabase.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="px-6 py-3 bg-white text-black font-bold rounded-2xl flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
-          >
-            Get Keys <ArrowRight size={16} />
-          </a>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard 
           title="Total Users" 

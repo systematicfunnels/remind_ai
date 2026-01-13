@@ -33,8 +33,11 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
     const delay = new Date(scheduledAt).getTime() - Date.now();
     
     // We need the phone_id to send the message
-    const { supabase } = await import('./supabase');
-    const { data: user } = await supabase.from('users').select('phone_id').eq('id', userId).single();
+    const { prisma } = await import('./prisma');
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone_id: true }
+    });
 
     if (!user?.phone_id) {
       console.error('User phone_id not found for scheduling');
@@ -88,14 +91,17 @@ export const startWorker = () => {
           body: JSON.stringify({ chat_id: phoneId, text: `🔔 REMINDER: ${task}` }),
         });
       }
-
+ 
       // Update status in DB
-      const { supabase } = await import('./supabase');
-      await supabase.from('reminders').update({ 
-        status: 'done', 
-        done_at: new Date().toISOString() 
-      }).eq('id', reminderId);
-
+      const { prisma } = await import('./prisma');
+      await prisma.reminder.update({
+        where: { id: reminderId },
+        data: {
+          status: 'done',
+          done_at: new Date()
+        }
+      });
+ 
     } catch (error) {
       console.error(`Failed to process job ${job.id}:`, error);
       throw error; // Let BullMQ handle retry

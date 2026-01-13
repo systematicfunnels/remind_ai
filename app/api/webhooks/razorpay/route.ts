@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
       try {
         await prisma.user.update({
           where: { phone_id: phoneId },
-          data: { sub_status: 'paid' },
+          data: { 
+            sub_status: 'paid',
+            payment_id: payment.id 
+          },
         });
       } catch (error) {
         console.error('Error updating sub_status with Prisma:', error);

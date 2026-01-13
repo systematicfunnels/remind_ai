@@ -12,6 +12,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true, // Also ignore TS errors to ensure build completes in demo mode
   },
+  experimental: {
+    instrumentationHook: true,
+  },
   serverExternalPackages: ['bullmq', 'ioredis'],
 };
 

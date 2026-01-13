@@ -2,19 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell
+  Bell, XCircle, RefreshCw
 } from 'lucide-react';
-import { Reminder } from '@/types';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Skeleton, EmptyState } from '@/components/admin/AdminUI';
-import { getAppData } from '@/services/storageService';
+import { Badge, Skeleton, EmptyState } from '@/components/admin/AdminUI';
+import { getAllReminders, cancelReminder, retryReminder } from '@/lib/adminActions';
 
 interface ReminderWithUser {
   id: string;
   task: string;
-  scheduled_at: string;
+  scheduled_at: Date;
   status: string;
-  users?: {
+  user?: {
     phone_id: string;
   };
 }
@@ -24,53 +22,35 @@ export default function ReminderListPage() {
   const [reminders, setReminders] = useState<ReminderWithUser[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done'>('all');
 
+  const fetchReminders = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllReminders(statusFilter);
+      setReminders(data as any);
+    } catch (err) {
+      console.error('Failed to fetch reminders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchReminders = async () => {
-      if (!isSupabaseConfigured) {
-        // Fallback for demo
-        const appData = getAppData();
-        let filtered = appData.reminders.map((r: Reminder) => ({
-          ...r,
-          scheduled_at: r.scheduledAt,
-          users: { phone_id: appData.users.find(u => u.id === r.userId)?.phone || 'Unknown' }
-        }));
-        
-        if (statusFilter !== 'all') {
-          filtered = filtered.filter(r => r.status === (statusFilter === 'done' ? 'completed' : 'pending'));
-        }
-        
-        setReminders(filtered.map(r => ({
-          ...r,
-          status: r.status === 'completed' ? 'done' : r.status
-        })));
-        setLoading(false);
-        return;
-      }
-
-      try {
-        let query = supabase
-          .from('reminders')
-          .select('*, users(phone_id)')
-          .order('scheduled_at', { ascending: false });
-        
-        if (statusFilter !== 'all') {
-          query = query.eq('status', statusFilter);
-        }
-
-        const { data, error } = await query;
-        
-        if (!error) {
-          setReminders(data || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch reminders:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchReminders();
   }, [statusFilter]);
+
+  const handleCancel = async (id: string) => {
+    if (confirm('Cancel this reminder?')) {
+      await cancelReminder(id);
+      fetchReminders();
+    }
+  };
+
+  const handleRetry = async (id: string) => {
+    if (confirm('Retry/Reschedule this reminder for 1 minute from now?')) {
+      await retryReminder(id);
+      fetchReminders();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -123,7 +103,7 @@ export default function ReminderListPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="text-sm font-black text-slate-300 italic">{rem.users?.phone_id || 'Unknown'}</div>
+                      <div className="text-sm font-black text-slate-300 italic">{rem.user?.phone_id || 'Unknown'}</div>
                     </td>
                     <td className="px-8 py-6">
                       <div className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
@@ -132,9 +112,41 @@ export default function ReminderListPage() {
                       <div className="text-[9px] text-slate-500 mt-1 font-bold uppercase tracking-wider">{new Date(rem.scheduled_at).toLocaleDateString()}</div>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex justify-center items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${rem.status === 'pending' ? 'bg-amber-400 animate-pulse shadow-lg shadow-amber-400/20' : 'bg-emerald-500 shadow-lg shadow-emerald-500/20'}`} />
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${rem.status === 'pending' ? 'text-amber-400' : 'text-emerald-500'}`}>{rem.status}</span>
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            rem.status === 'pending' ? 'bg-amber-400 animate-pulse shadow-lg shadow-amber-400/20' : 
+                            rem.status === 'done' ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 
+                            'bg-rose-500'
+                          }`} />
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${
+                            rem.status === 'pending' ? 'text-amber-400' : 
+                            rem.status === 'done' ? 'text-emerald-500' : 
+                            'text-rose-500'
+                          }`}>{rem.status}</span>
+                        </div>
+                        
+                        {rem.status === 'pending' ? (
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => handleCancel(rem.id)}
+                              className="p-2 hover:bg-rose-500/10 rounded-lg text-slate-500 hover:text-rose-500"
+                              title="Cancel Reminder"
+                            >
+                              <XCircle size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => handleRetry(rem.id)}
+                              className="p-2 hover:bg-indigo-500/10 rounded-lg text-slate-500 hover:text-indigo-400"
+                              title="Retry/Reschedule"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
