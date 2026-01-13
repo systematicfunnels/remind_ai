@@ -87,7 +87,7 @@ export const processMessageWithAI = async (message: string): Promise<AIResponse>
     const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
     return parsed;
   } catch (error) {
-    console.error("AI Model Failed, using heuristics:", error);
-    return fallbackParse(message);
+    console.error("Gemini API Error:", error);
+    return { intent: 'UNKNOWN' };
   }
 };

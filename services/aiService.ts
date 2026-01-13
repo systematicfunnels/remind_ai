@@ -39,36 +39,39 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
       };
     }
   } catch (error) {
-    console.error("AI Pipeline: OpenAI failed", error);
+    console.warn("AI Pipeline: OpenAI failed, falling back to Gemini");
   }
 
-  // 2. Try Gemini (which also has its own heuristic fallback)
+  // 2. Try Gemini
   try {
     const geminiResult = await parseWithGemini(message);
-    if (geminiResult.intent === 'CREATE' && geminiResult.task) {
-      // Convert delayMinutes to an ISO time string if needed
-      const time = geminiResult.delayMinutes 
-        ? new Date(Date.now() + geminiResult.delayMinutes * 60000).toISOString()
-        : new Date().toISOString();
-      
-      return {
-        intent: 'CREATE',
-        task: geminiResult.task,
-        time
-      };
+    // Only return if it's a high-confidence intent and NOT from the internal heuristic 
+    // (Gemini's internal fallback might return 'CREATE' for 'remind me...')
+    // To truly test the fallback, we should see if we can distinguish AI from heuristic.
+    // For now, let's assume if it's UNKNOWN, we continue to OpenRouter.
+    if (geminiResult && geminiResult.intent !== 'UNKNOWN') {
+      if (geminiResult.intent === 'CREATE' && geminiResult.task) {
+        const time = geminiResult.delayMinutes 
+          ? new Date(Date.now() + geminiResult.delayMinutes * 60000).toISOString()
+          : new Date().toISOString();
+        
+        return {
+          intent: 'CREATE',
+          task: geminiResult.task,
+          time
+        };
+      }
+      if (geminiResult.intent === 'LIST') return { intent: 'LIST' };
+      if (geminiResult.intent === 'COMPLETE') return { intent: 'DONE' };
     }
-    
-    // Map Gemini intents to Unified intents
-    if (geminiResult.intent === 'LIST') return { intent: 'LIST' };
-    if (geminiResult.intent === 'COMPLETE') return { intent: 'DONE' };
   } catch (error) {
-    console.error("AI Pipeline: Gemini failed", error);
+    console.warn("AI Pipeline: Gemini failed, falling back to OpenRouter");
   }
 
   // 3. Try OpenRouter (Final LLM Fallback)
   try {
     const orResult = await parseWithOpenRouter(message);
-    if (orResult) {
+    if (orResult && orResult.intent !== 'UNKNOWN') {
       if (orResult.intent === 'CREATE' && orResult.task && orResult.time) {
         return {
           intent: 'CREATE',
@@ -80,7 +83,27 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
       if (orResult.intent === 'DONE') return { intent: 'DONE' };
     }
   } catch (error) {
-    console.error("AI Pipeline: OpenRouter failed", error);
+    console.error("AI Pipeline: OpenRouter failed");
+  }
+
+  // 4. Final Local Heuristic Fallback (Last Resort)
+  console.log("AI Pipeline: All LLMs failed, using local heuristics");
+  const lower = message.toLowerCase();
+
+  if (lower.includes('list') || lower.includes('show') || lower.includes('tasks')) {
+    return { intent: 'LIST' };
+  }
+
+  if (lower.includes('done') || lower.includes('complete') || lower.includes('finish')) {
+    return { intent: 'DONE' };
+  }
+
+  if (lower.includes('remind') || lower.includes('in ') || lower.includes('at ')) {
+    return {
+      intent: 'CREATE',
+      task: message.replace(/remind me to |remind me /gi, '').trim(),
+      time: new Date(Date.now() + 10 * 60000).toISOString() // Default to 10 mins
+    };
   }
 
   return { intent: 'UNKNOWN' };

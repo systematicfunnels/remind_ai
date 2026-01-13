@@ -21,7 +21,7 @@ export const parseWithOpenRouter = async (message: string): Promise<OpenRouterPa
         "X-Title": "RemindAI"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct:free", // Using a fast, free model for fallback
+        model: "mistralai/mistral-7b-instruct:free", // Using Mistral 7B as a free fallback
         messages: [
           {
             role: "system",
@@ -39,6 +39,10 @@ export const parseWithOpenRouter = async (message: string): Promise<OpenRouterPa
         response_format: { type: "json_object" }
       })
     });
+
+    if (!response.ok) {
+      return null;
+    }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
