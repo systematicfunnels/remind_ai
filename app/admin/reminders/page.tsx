@@ -154,7 +154,7 @@ export default function ReminderListPage() {
               </tbody>
             </table>
           ) : (
-            <EmptyState icon={<Bell />} title="Pipeline standby" description="No active jobs are currently scheduled in the dispatcher." />
+            <EmptyState icon={Bell} title="Pipeline standby" description="No active jobs are currently scheduled in the dispatcher." />
           )}
         </div>
       </div>

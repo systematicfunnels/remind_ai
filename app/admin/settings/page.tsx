@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Badge, Toast } from '@/components/admin/AdminUI';
 
-const ToggleSetting = ({ title, icon, color, initialValue }: { title: string; icon: React.ReactElement<{ size?: number }>; color: string; initialValue?: boolean }) => {
+const ToggleSetting = ({ title, icon: Icon, color, initialValue }: { title: string; icon: React.ElementType; color: string; initialValue?: boolean }) => {
   const [enabled, setEnabled] = useState(initialValue || false);
   
   // Dynamic class construction for Tailwind colors
@@ -20,7 +20,7 @@ const ToggleSetting = ({ title, icon, color, initialValue }: { title: string; ic
     <div className="flex items-center justify-between group">
        <div className="flex items-center gap-3.5">
           <div className={`p-3 rounded-xl ${colorStyles[color]} group-hover:scale-110 transition-transform border shadow-sm`}>
-             {React.cloneElement(icon, { size: 18 })}
+             <Icon size={18} />
           </div>
           <span className="text-sm font-bold text-slate-200">{title}</span>
        </div>
@@ -61,9 +61,9 @@ export default function SettingsPage() {
                 <Globe size={18} className="text-indigo-400" /> Platform Integration
              </h3>
              <div className="space-y-6">
-                <ToggleSetting title="WhatsApp Signal Node" icon={<MessageSquare />} color="emerald" initialValue={true} />
-                <ToggleSetting title="Telegram Signal Node" icon={<Smartphone />} color="sky" initialValue={true} />
-                <ToggleSetting title="AI Voice Transceiver" icon={<Mic />} color="violet" initialValue={true} />
+                <ToggleSetting title="WhatsApp Signal Node" icon={MessageSquare} color="emerald" initialValue={true} />
+                <ToggleSetting title="Telegram Signal Node" icon={Smartphone} color="sky" initialValue={true} />
+                <ToggleSetting title="AI Voice Transceiver" icon={Mic} color="violet" initialValue={true} />
              </div>
           </div>
 

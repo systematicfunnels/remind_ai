@@ -7,7 +7,7 @@ const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
 
 export const prisma =
   globalForPrisma.prisma ||

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Badge, Skeleton } from '@/components/admin/AdminUI';
 import { getAdminStats } from '@/lib/adminActions';
+import AdminChart from '@/components/admin/AdminChart';
 
 export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
@@ -48,21 +49,21 @@ export default function OverviewPage() {
           title="Total Users" 
           value={stats.totalUsers.toLocaleString()} 
           icon={<Users />} 
-          trend="+10%" 
+          trend="Active" 
           color="indigo" 
         />
         <StatCard 
           title="Total Reminders" 
           value={stats.totalReminders.toLocaleString()} 
           icon={<Bell />} 
-          trend="+25%" 
+          trend="Processed" 
           color="amber" 
         />
         <StatCard 
           title="Monthly Revenue (MRR)" 
           value={`₹${stats.mrr.toLocaleString()}`} 
           icon={<CreditCard />} 
-          trend="+₹500" 
+          trend="Subscribed" 
           color="emerald" 
         />
       </div>
@@ -71,9 +72,7 @@ export default function OverviewPage() {
         <h3 className="text-xl font-black text-white mb-6 flex items-center gap-3 italic uppercase tracking-tight">
           <Activity size={20} className="text-indigo-400" /> System Velocity
         </h3>
-        <div className="h-[300px] flex items-center justify-center border border-dashed border-slate-800 rounded-3xl text-slate-500 font-bold uppercase tracking-widest text-xs">
-          Pipeline Analytics Ready
-        </div>
+        <AdminChart />
       </div>
     </div>
   );

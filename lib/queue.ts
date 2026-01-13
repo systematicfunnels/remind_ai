@@ -66,6 +66,44 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
   }
 }
 
+/**
+ * Helper to send a direct message (not a scheduled reminder)
+ */
+export async function sendDirectMessage(phoneId: string, platform: string, message: string) {
+  try {
+    if (platform === 'whatsapp') {
+      if (twilioClient) {
+        await twilioClient.messages.create({
+          from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+          to: phoneId,
+          body: message,
+        });
+      }
+    } else if (platform === 'instagram') {
+      const PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
+      if (PAGE_ACCESS_TOKEN) {
+        await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: phoneId },
+            message: { text: message },
+          }),
+        });
+      }
+    } else {
+      // Telegram
+      await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: phoneId, text: message }),
+      });
+    }
+  } catch (error) {
+    console.error('Failed to send direct message:', error);
+  }
+}
+
 export const startWorker = () => {
   if (!connection) {
     console.warn('BullMQ Worker: No Redis connection found. Skipping worker start.');

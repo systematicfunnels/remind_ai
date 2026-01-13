@@ -42,10 +42,10 @@ export const Tooltip = ({ text, children, visible, ...props }: { text: string; c
   </div>
 );
 
-export const EmptyState = ({ icon, title, description }: { icon: React.ReactElement<{ size?: number }>; title: string; description: string }) => (
+export const EmptyState = ({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) => (
   <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in duration-700">
     <div className="p-5 bg-slate-900/50 rounded-3xl border border-slate-800 mb-6 text-slate-600 shadow-inner">
-      {React.cloneElement(icon, { size: 40 })}
+      <Icon size={40} />
     </div>
     <h4 className="text-white font-black text-lg mb-2 tracking-tight">{title}</h4>
     <p className="text-slate-500 text-sm max-w-xs mx-auto leading-relaxed">{description}</p>

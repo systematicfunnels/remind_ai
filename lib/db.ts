@@ -176,16 +176,10 @@ export const db = {
   },
 
   getWelcomeMessage(): string {
-    return `Welcome to RemindAI! 🚀
+    return "🚀 *Welcome to RemindAI!*\n\nI'm your intelligent reminder assistant. You can chat with me naturally or send voice notes, and I'll make sure you never miss a task.\n\n*Try saying something like:*\n• \"Remind me to call Mom today at 7pm\"\n• \"Schedule a meeting for tomorrow at 10am\"\n\nType 'HELP' anytime to see what else I can do!";
+  },
 
-I'm your personal assistant for quick reminders. You can send me text or voice messages like:
-• "Remind me to call mom at 7pm"
-• "Buy milk tomorrow morning"
-
-Commands:
-• LIST - See your pending reminders
-• DONE - Mark the last one as finished
-
-You have 5 free reminders to start with. Enjoy! 😊`;
+  getHelpMessage(): string {
+    return "🛠️ *RemindAI Help Menu*\n\n*Commands:*\n• *CREATE*: Just type your task and time naturally (e.g., 'remind me to pay bills on Friday at 9am')\n• *LIST*: View your next 10 pending reminders\n• *DONE*: Mark your most recent pending reminder as completed\n• *HELP*: Show this menu\n\n*Voice Support:*\nSend me a voice note and I'll transcribe and schedule it for you!\n\n*Subscription:*\nTrial users get 5 reminders. Upgrade to Premium for unlimited access! 🚀";
   }
 };

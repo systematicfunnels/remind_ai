@@ -48,10 +48,10 @@ export default function AdminLoginPage() {
             <Zap className="text-white w-8 h-8 fill-current" />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight uppercase italic">
-            Remind<span className="text-indigo-500">AI</span> Console
+            Remind<span className="text-indigo-500">AI</span>
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-            Restricted Root Access Only
+            Secure Access Portal
           </p>
         </div>
 
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  <span>Initialize Terminal</span>
+                  <span>Sign In</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}

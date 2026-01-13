@@ -13,6 +13,7 @@ const nextConfig = {
     ignoreBuildErrors: true, // Also ignore TS errors to ensure build completes in demo mode
   },
   serverExternalPackages: ['bullmq', 'ioredis'],
+  transpilePackages: ['lucide-react'],
 };
 
 export default nextConfig;

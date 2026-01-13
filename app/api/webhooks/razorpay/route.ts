@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { sendDirectMessage } from '@/lib/queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,13 +33,20 @@ export async function POST(req: NextRequest) {
 
     if (phoneId) {
       try {
-        await prisma.user.update({
+        const user = await prisma.user.update({
           where: { phone_id: phoneId },
           data: { 
             sub_status: 'paid',
             payment_id: payment.id 
           },
         });
+
+        // Send success message to user
+        await sendDirectMessage(
+          phoneId, 
+          user.channel || 'whatsapp', 
+          "✅ Payment Successful! Your RemindAI account has been upgraded to Premium. Enjoy unlimited reminders! 🚀"
+        );
       } catch (error) {
         console.error('Error updating sub_status with Prisma:', error);
       }

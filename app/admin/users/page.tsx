@@ -143,7 +143,7 @@ export default function UserListPage() {
               </tbody>
             </table>
           ) : (
-            <EmptyState icon={<Users />} title="No subscribers" description="Your subscriber database is currently empty." />
+            <EmptyState icon={Users} title="No subscribers" description="Your subscriber database is currently empty." />
           )}
         </div>
       </div>

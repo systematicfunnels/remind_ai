@@ -2,7 +2,7 @@ import { parseReminderIntent as parseWithOpenAI } from './openaiService';
 import { processMessageWithAI as parseWithGemini } from './geminiService';
 import { parseWithOpenRouter } from './openRouterService';
 
-export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'UNKNOWN';
+export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'UNKNOWN';
 
 export interface UnifiedAIResponse {
   intent: Intent;
@@ -26,6 +26,9 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
   }
   if (lowerMsg === 'done' || lowerMsg === '/done') {
     return { intent: 'DONE' };
+  }
+  if (lowerMsg === 'help' || lowerMsg === '/help' || lowerMsg === 'start') {
+    return { intent: 'HELP' };
   }
 
   // 1. Try OpenAI
@@ -96,6 +99,10 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
 
   if (lower.includes('done') || lower.includes('complete') || lower.includes('finish')) {
     return { intent: 'DONE' };
+  }
+
+  if (lower.includes('help') || lower.includes('support') || lower.includes('how')) {
+    return { intent: 'HELP' };
   }
 
   if (lower.includes('remind') || lower.includes('in ') || lower.includes('at ')) {

@@ -7,8 +7,8 @@ import {
   Users, Bell, BarChart3, Settings, Search, 
   Menu, X, LogOut, Terminal, Zap, ChevronRight
 } from 'lucide-react';
-import { Toast, Tooltip } from '@/components/admin/AdminUI';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { Badge, Toast, Tooltip } from '@/components/admin/AdminUI';
+import { logout } from '@/lib/adminActions';
 
 const menuItems = [
   { icon: <BarChart3 size={20} />, label: 'Overview', path: '/admin' },
@@ -145,13 +145,13 @@ export default function AdminLayout({
         </nav>
 
         <div className="p-4 mt-auto border-t border-slate-900/50 overflow-hidden">
-          <Link 
-            href="/"
+          <button 
+            onClick={() => logout()}
             className={`w-full flex items-center px-3.5 py-3.5 text-slate-600 hover:text-rose-400 transition-colors group whitespace-nowrap rounded-2xl outline-none ${isSidebarOpen ? 'gap-4' : 'lg:justify-center'}`}
           >
             <LogOut size={20} className="shrink-0 group-hover:-translate-x-1 transition-transform" />
             <span className={`font-bold text-sm transition-all duration-200 ${!isSidebarOpen ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden lg:ml-0' : 'opacity-100 ml-4'}`}>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -169,12 +169,6 @@ export default function AdminLayout({
             <div className="hidden sm:block">
             <h2 className="text-lg font-black tracking-tight text-white uppercase flex items-center gap-3">
               {menuItems.find(i => i.path === pathname)?.label || 'Console'}
-              {!isSupabaseConfigured && (
-                <span className="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full tracking-widest flex items-center gap-1.5 animate-pulse">
-                  <div className="w-1 h-1 bg-amber-500 rounded-full" />
-                  Demo Mode
-                </span>
-              )}
             </h2>
           </div>
           </div>

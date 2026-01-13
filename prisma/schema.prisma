@@ -37,3 +37,12 @@ model Reminder {
 
   @@map("reminders")
 }
+
+model LoginAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  ip_address String
+  attempts   Int      @default(1)
+  last_tried DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("login_attempts")
+}

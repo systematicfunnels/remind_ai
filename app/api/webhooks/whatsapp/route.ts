@@ -85,6 +85,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (parsed.intent === 'HELP') {
+    await sendWhatsAppMessage(from, db.getHelpMessage());
+    return NextResponse.json({ success: true });
+  }
+
   // 3. Check Subscription & Limit
   const reminderCount = user.reminder_count ?? 0;
   if (user.sub_status === 'trial' && reminderCount >= 5) {

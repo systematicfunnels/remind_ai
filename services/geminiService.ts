@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { RecurrenceRule } from "../types";
+
+export type RecurrenceRule = 'none' | 'daily' | 'weekly' | 'monthly';
 
 const getAI = () => {
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;

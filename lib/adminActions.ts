@@ -3,6 +3,13 @@
 import { prisma } from './prisma';
 import { revalidatePath } from 'next/cache';
 import { scheduleReminder } from './queue';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export async function logout() {
+  (await cookies()).delete('admin_session');
+  redirect('/admin/login');
+}
 
 export async function getAdminStats() {
   const [totalUsers, paidUsers, totalReminders, pendingReminders] = await Promise.all([
