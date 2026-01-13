@@ -29,8 +29,8 @@ export default function AdminLoginPage() {
         const data = await res.json();
         setError(data.error || 'Invalid credentials');
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch {
+      setError('Invalid security key');
     } finally {
       setLoading(false);
     }

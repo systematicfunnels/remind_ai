@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, XCircle, RefreshCw
 } from 'lucide-react';
-import { Badge, Skeleton, EmptyState } from '@/components/admin/AdminUI';
+import { Skeleton, EmptyState } from '@/components/admin/AdminUI';
 import { getAllReminders, cancelReminder, retryReminder } from '@/lib/adminActions';
 
 interface ReminderWithUser {
@@ -22,21 +22,21 @@ export default function ReminderListPage() {
   const [reminders, setReminders] = useState<ReminderWithUser[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done'>('all');
 
-  const fetchReminders = async () => {
+  const fetchReminders = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getAllReminders(statusFilter);
-      setReminders(data as any);
+      setReminders(data as ReminderWithUser[]);
     } catch (err) {
       console.error('Failed to fetch reminders:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchReminders();
-  }, [statusFilter]);
+  }, [fetchReminders]);
 
   const handleCancel = async (id: string) => {
     if (confirm('Cancel this reminder?')) {

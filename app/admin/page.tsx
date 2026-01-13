@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, CreditCard, Activity, Bell, AlertTriangle, ArrowRight
+  Users, CreditCard, Activity, Bell
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Badge, Skeleton } from '@/components/admin/AdminUI';
 import { getAdminStats } from '@/lib/adminActions';
 

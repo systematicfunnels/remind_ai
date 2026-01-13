@@ -38,7 +38,7 @@ export default function LandingPage() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-indigo-400 to-sky-400 animate-gradient">REMINDER BOT.</span>
               </h1>
               <p className="text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto font-medium tracking-tight leading-relaxed">
-                Just chat or record a voice note like <span className="text-indigo-400">"remind me at 10pm"</span>. <br className="hidden sm:block" />
+                Just chat or record a voice note like <span className="text-indigo-400">&quot;remind me at 10pm&quot;</span>. <br className="hidden sm:block" />
                 Our AI schedules it and sends the reminder back to your chat.
               </p>
             </div>

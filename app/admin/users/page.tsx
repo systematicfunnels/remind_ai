@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Users, Trash2, MoreHorizontal, ShieldCheck, RefreshCw
+  Users, Trash2, ShieldCheck, RefreshCw
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Badge, Skeleton, EmptyState } from '@/components/admin/AdminUI';
 import { getAllUsers, blockUser, resetUserUsage, deleteUser } from '@/lib/adminActions';
 
@@ -24,21 +23,21 @@ export default function UserListPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserData[]>([]);
   
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getAllUsers();
-      setUsers(data as any);
+      setUsers(data as UserData[]);
     } catch (err) {
       console.error('Failed to fetch users:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleBlock = async (id: string, currentlyBlocked: boolean) => {
     await blockUser(id, !currentlyBlocked);
