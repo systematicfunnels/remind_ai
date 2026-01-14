@@ -4,12 +4,15 @@ import { parseWithOpenRouter } from './openRouterService';
 
 export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
 
+export type RecurrenceRule = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface UnifiedAIResponse {
   intent: Intent;
   task?: string;
   time?: string; // ISO string for CREATE
   query?: string; // For searching specific tasks to complete
   timezone?: string; // For TIMEZONE intent
+  recurrence?: RecurrenceRule;
 }
 
 /**
@@ -56,7 +59,8 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         return {
           intent: 'CREATE',
           task: openAIResult.task,
-          time: openAIResult.time
+          time: openAIResult.time,
+          recurrence: (openAIResult as any).recurrence || 'none'
         };
       }
       if (openAIResult.intent === 'TIMEZONE' && openAIResult.timezone) {
@@ -82,11 +86,12 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         return {
           intent: 'CREATE',
           task: geminiResult.task,
-          time: geminiResult.time
+          time: geminiResult.time,
+          recurrence: geminiResult.recurrence || 'none'
         };
       }
       if (geminiResult.intent === 'LIST') return { intent: 'LIST' };
-      if (geminiResult.intent === 'COMPLETE') return { intent: 'DONE' };
+      if (geminiResult.intent === 'DONE') return { intent: 'DONE' };
       if (geminiResult.intent === 'TIMEZONE') return { intent: 'TIMEZONE', timezone: geminiResult.timezone };
       if (geminiResult.intent === 'BILLING') return { intent: 'BILLING' };
       if (geminiResult.intent === 'ERASE') return { intent: 'ERASE' };
@@ -104,7 +109,8 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         return {
           intent: 'CREATE',
           task: orResult.task,
-          time: orResult.time
+          time: orResult.time,
+          recurrence: (orResult as any).recurrence || 'none'
         };
       }
       if (orResult.intent === 'TIMEZONE') return { intent: 'TIMEZONE', timezone: orResult.timezone };
@@ -161,9 +167,10 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       task = task.replace(/tomorrow/gi, '').trim();
     }
 
-    // 2. Handle "in X min/hour"
+    // 2. Handle "in X min/hour/day"
     const minuteMatch = lower.match(/in (\d+)\s*min/);
     const hourMatch = lower.match(/in (\d+)\s*hour/);
+    const dayMatch = lower.match(/in (\d+)\s*day/);
     
     if (minuteMatch) {
       const mins = parseInt(minuteMatch[1]);
@@ -173,6 +180,10 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       const hours = parseInt(hourMatch[1]);
       scheduledDate = new Date(now.getTime() + hours * 3600000);
       task = task.replace(/in \d+\s*hour(s)?/gi, '').trim();
+    } else if (dayMatch) {
+      const days = parseInt(dayMatch[1]);
+      scheduledDate = new Date(now.getTime() + days * 86400000);
+      task = task.replace(/in \d+\s*day(s)?/gi, '').trim();
     }
 
     // 3. Handle "at X am/pm" (Very basic heuristic)
@@ -183,30 +194,37 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       if (ampm === 'pm' && hours < 12) hours += 12;
       if (ampm === 'am' && hours === 12) hours = 0;
       
-      // This is tricky: "at 9pm" depends on the user's timezone.
-      // We need to set the hours in the user's local time, then convert back to UTC.
-      
-      // Create a date object representing the target time in the user's timezone
       const targetInUserTZ = new Date(userNow);
       targetInUserTZ.setHours(hours, 0, 0, 0);
       
-      // If the time has already passed today, assume tomorrow (unless we already handled "tomorrow")
       if (targetInUserTZ < userNow && !lower.includes('tomorrow')) {
         targetInUserTZ.setDate(targetInUserTZ.getDate() + 1);
       }
       
-      // Convert back to UTC: 
-      // The difference between userNow and now is the timezone offset.
       const offset = now.getTime() - userNow.getTime();
       scheduledDate = new Date(targetInUserTZ.getTime() + offset);
       
       task = task.replace(/at \d+\s*(am|pm)/gi, '').trim();
     }
 
+    // 4. Handle Recurrence heuristics
+    let recurrence: RecurrenceRule = 'none';
+    if (lower.includes('every day') || lower.includes('daily')) {
+      recurrence = 'daily';
+      task = task.replace(/every day|daily/gi, '').trim();
+    } else if (lower.includes('every week') || lower.includes('weekly')) {
+      recurrence = 'weekly';
+      task = task.replace(/every week|weekly/gi, '').trim();
+    } else if (lower.includes('every month') || lower.includes('monthly')) {
+      recurrence = 'monthly';
+      task = task.replace(/every month|monthly/gi, '').trim();
+    }
+
     return {
       intent: 'CREATE',
       task: task || "Reminder",
-      time: scheduledDate.toISOString()
+      time: scheduledDate.toISOString(),
+      recurrence
     };
   }
 

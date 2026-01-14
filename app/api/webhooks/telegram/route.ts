@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
   // 4. Create Reminder
   if (parsed.intent === 'CREATE' && parsed.task && parsed.time) {
-    const reminder = await db.createReminder(user.id, parsed.task, parsed.time);
+    const reminder = await db.createReminder(user.id, parsed.task, parsed.time, parsed.recurrence || 'none');
     if (reminder) {
       await db.incrementReminderCount(user.id);
       await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
@@ -148,7 +148,12 @@ export async function POST(req: NextRequest) {
         timeStyle: 'short'
       });
 
-      let confirmation = `✅ Set: ${parsed.task} on ${localTime}\n\n(Reply "DONE" to clear or "UNDO" to cancel)`;
+      let recurrenceMsg = '';
+      if (parsed.recurrence && parsed.recurrence !== 'none') {
+        recurrenceMsg = ` (Repeat: ${parsed.recurrence})`;
+      }
+
+      let confirmation = `✅ Set: ${parsed.task} on ${localTime}${recurrenceMsg}\n\n(Reply "DONE" to clear or "UNDO" to cancel)`;
       if (message.voice) {
         confirmation = `🎤 Heard: "${text}"\n\n${confirmation}`;
       }

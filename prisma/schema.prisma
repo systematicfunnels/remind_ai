@@ -9,6 +9,20 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ReminderStatus {
+  pending
+  done
+  cancelled
+  failed
+}
+
+enum RecurrenceRule {
+  none
+  daily
+  weekly
+  monthly
+}
+
 model User {
   id             String     @id @default(uuid()) @db.Uuid
   phone_id       String     @unique
@@ -28,15 +42,16 @@ model User {
 }
 
 model Reminder {
-  id             String    @id @default(uuid()) @db.Uuid
-  user_id        String?   @db.Uuid
+  id             String         @id @default(uuid()) @db.Uuid
+  user_id        String?        @db.Uuid
   task           String
-  scheduled_at   DateTime  @db.Timestamptz(6)
-  status         String?   @default("pending")
+  scheduled_at   DateTime       @db.Timestamptz(6)
+  status         ReminderStatus @default(pending)
+  recurrence     RecurrenceRule @default(none)
   failure_reason String?
-  done_at        DateTime? @db.Timestamp(6)
-  created_at     DateTime? @default(now()) @db.Timestamp(6)
-  user           User?     @relation(fields: [user_id], references: [id])
+  done_at        DateTime?      @db.Timestamp(6)
+  created_at     DateTime?      @default(now()) @db.Timestamp(6)
+  user           User?          @relation(fields: [user_id], references: [id])
 
   @@map("reminders")
   @@index([user_id, status])

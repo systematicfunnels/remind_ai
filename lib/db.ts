@@ -126,7 +126,7 @@ export const db = {
     }
   },
 
-  async createReminder(userId: string, task: string, scheduledAt: string): Promise<Reminder | null> {
+  async createReminder(userId: string, task: string, scheduledAt: string, recurrence: any = 'none'): Promise<Reminder | null> {
     try {
       return await prisma.reminder.create({
         data: {
@@ -134,6 +134,7 @@ export const db = {
           task,
           scheduled_at: new Date(scheduledAt),
           status: 'pending',
+          recurrence: recurrence,
         },
       });
     } catch (error) {

@@ -8,7 +8,7 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export type Intent = 'CREATE' | 'LIST' | 'COMPLETE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
+export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
 
 export interface AIResponse {
   intent: Intent;
@@ -28,7 +28,7 @@ const fallbackParse = (message: string): AIResponse => {
 
   if (msg.includes('done') || msg.includes('complete') || msg.includes('finish') || msg.includes('mark')) {
     const query = msg.replace(/done|complete|finish|mark|with|the|as/g, '').trim();
-    return { intent: 'COMPLETE', query: query || 'task' };
+    return { intent: 'DONE', query: query || 'task' };
   }
 
   if (msg.includes('timezone') || msg.includes('time zone') || msg.includes('i am in') || msg.includes('located in')) {
@@ -73,15 +73,7 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
   if (!ai) return null;
 
   try {
-    // Normalize mimeType for Gemini
-    let normalizedMimeType = mimeType.split(';')[0].trim();
-    if (normalizedMimeType === 'audio/mpeg' || normalizedMimeType === 'audio/mp3') {
-      normalizedMimeType = 'audio/mpeg';
-    } else if (normalizedMimeType.includes('ogg')) {
-      normalizedMimeType = 'audio/ogg';
-    }
-
-    console.log(`Gemini Voice: Transcribing with mimeType: ${normalizedMimeType}`);
+    console.log(`Gemini Voice: Transcribing with mimeType: ${mimeType}`);
 
     const result = await ai.models.generateContent({
       model: "gemini-flash-latest",
@@ -92,7 +84,7 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
             {
               inlineData: {
                 data: audioBuffer.toString('base64'),
-                mimeType: normalizedMimeType
+                mimeType: mimeType
               }
             },
             { text: "Transcribe this audio exactly as heard. The audio might be in English, Hindi, or a mix of both (Hinglish). Return only the transcribed text." }
@@ -138,7 +130,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
         Intents:
         - CREATE: Set reminder. Fields: task (string), time (ISO8601 string), recurrence (none|daily|weekly|monthly).
         - LIST: Show reminders.
-        - COMPLETE: Mark task done. Fields: query (string).
+        - DONE: Mark task done. Fields: query (string).
         - TIMEZONE: Update location. Fields: timezone (e.g., "Europe/London").
         - BILLING: Check status/subscription.
         - ERASE: Delete all personal data.

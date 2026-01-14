@@ -7,6 +7,18 @@ import { transcribeAudioWithGemini } from './geminiService';
  * 2. Google Gemini 1.5 Flash (Fallback)
  */
 export const unifiedTranscribe = async (audioBuffer: Buffer, mimeType: string = 'audio/ogg'): Promise<string | null> => {
+  // Normalize mimeType for providers
+  let normalizedMimeType = mimeType.split(';')[0].trim().toLowerCase();
+  
+  // Map common types
+  if (normalizedMimeType === 'audio/mpeg' || normalizedMimeType === 'audio/mp3') {
+    normalizedMimeType = 'audio/mpeg';
+  } else if (normalizedMimeType.includes('ogg') || normalizedMimeType.includes('opus')) {
+    normalizedMimeType = 'audio/ogg';
+  } else if (normalizedMimeType === 'audio/wav' || normalizedMimeType === 'audio/x-wav') {
+    normalizedMimeType = 'audio/wav';
+  }
+
   // 1. Try OpenAI Whisper
   try {
     const whisperText = await transcribeWithOpenAI(audioBuffer);
@@ -20,7 +32,7 @@ export const unifiedTranscribe = async (audioBuffer: Buffer, mimeType: string = 
 
   // 2. Try Gemini 1.5 Flash
   try {
-    const geminiText = await transcribeAudioWithGemini(audioBuffer, mimeType);
+    const geminiText = await transcribeAudioWithGemini(audioBuffer, normalizedMimeType);
     if (geminiText) {
       console.log("Voice: Transcribed using Google Gemini");
       return geminiText;
