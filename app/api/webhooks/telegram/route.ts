@@ -67,6 +67,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Parse Intent (Handles commands & natural language)
+  if (text.toUpperCase() === 'UNDO') {
+    const success = await db.cancelLastReminder(user.id);
+    await sendTelegramMessage(chatId, success ? "🗑️ Cancelled your last reminder." : "You don't have any pending reminders to cancel.");
+    return NextResponse.json({ success: true });
+  }
+
   const parsed = await unifiedParseIntent(text, user.timezone || 'UTC');
 
   if (parsed.intent === 'DONE') {

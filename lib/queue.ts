@@ -116,12 +116,26 @@ export const startWorker = () => {
     console.log(`Processing reminder: ${task} for ${phoneId}`);
 
     try {
+      const { prisma } = await import('./prisma');
+      
+      // Check if reminder still exists and is pending
+      const reminder = await prisma.reminder.findUnique({
+        where: { id: reminderId }
+      });
+
+      if (!reminder || reminder.status !== 'pending') {
+        console.log(`Reminder ${reminderId} is no longer pending (status: ${reminder?.status}). Skipping notification.`);
+        return;
+      }
+
+      const messageText = `🔔 *REMINDER*: ${task}\n\nReply with "DONE" to mark as finished or "LIST" to see other tasks.`;
+
       if (platform === 'whatsapp') {
         if (twilioClient) {
           await twilioClient.messages.create({
             from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
             to: phoneId,
-            body: `🔔 REMINDER: ${task}\n\nReply with "DONE" to mark as finished.`,
+            body: messageText,
           });
         } else {
           console.error('Twilio client not initialized');
@@ -134,7 +148,7 @@ export const startWorker = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               recipient: { id: phoneId },
-              message: { text: `🔔 REMINDER: ${task}\n\nReply with "DONE" to mark as finished.` },
+              message: { text: messageText },
             }),
           });
         } else {
@@ -145,12 +159,15 @@ export const startWorker = () => {
         await fetch(`${TELEGRAM_API}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: phoneId, text: `🔔 REMINDER: ${task}` }),
+          body: JSON.stringify({ 
+            chat_id: phoneId, 
+            text: messageText,
+            parse_mode: 'Markdown'
+          }),
         });
       }
- 
+
       // Update status in DB
-      const { prisma } = await import('./prisma');
       await prisma.reminder.update({
         where: { id: reminderId },
         data: {

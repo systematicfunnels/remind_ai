@@ -73,8 +73,18 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
   if (!ai) return null;
 
   try {
+    // Normalize mimeType for Gemini
+    let normalizedMimeType = mimeType.split(';')[0].trim();
+    if (normalizedMimeType === 'audio/mpeg' || normalizedMimeType === 'audio/mp3') {
+      normalizedMimeType = 'audio/mpeg';
+    } else if (normalizedMimeType.includes('ogg')) {
+      normalizedMimeType = 'audio/ogg';
+    }
+
+    console.log(`Gemini Voice: Transcribing with mimeType: ${normalizedMimeType}`);
+
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       contents: [
         {
           role: 'user',
@@ -82,7 +92,7 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
             {
               inlineData: {
                 data: audioBuffer.toString('base64'),
-                mimeType: mimeType
+                mimeType: normalizedMimeType
               }
             },
             { text: "Transcribe this audio exactly as heard. Return only the transcribed text." }
@@ -91,7 +101,13 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
       ]
     });
 
-    return result.text?.trim() || null;
+    const transcription = result.text?.trim() || null;
+    if (transcription) {
+      console.log("Gemini Voice: Successfully transcribed");
+    } else {
+      console.warn("Gemini Voice: Received empty transcription");
+    }
+    return transcription;
   } catch (error) {
     console.error("Gemini Transcription Error:", error);
     return null;
@@ -110,7 +126,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.

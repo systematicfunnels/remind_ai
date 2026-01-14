@@ -84,7 +84,14 @@ export async function POST(req: NextRequest) {
               if (reminder) {
                 await db.incrementReminderCount(user.id);
                 await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
-                await sendInstagramMessage(senderId, `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}`);
+                
+                const localTime = new Date(parsed.time).toLocaleString('en-US', { 
+                  timeZone: user.timezone || 'UTC',
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
+                });
+
+                await sendInstagramMessage(senderId, `✅ Set: ${parsed.task} on ${localTime}\n\n(Reply "DONE" to clear)`);
               }
             } else {
               await sendInstagramMessage(senderId, "I couldn't understand that. Try: 'remind me to call mom tomorrow at 7pm'");

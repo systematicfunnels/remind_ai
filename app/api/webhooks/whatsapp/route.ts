@@ -70,6 +70,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Parse Intent (Handles commands & natural language)
+  if (body.toUpperCase() === 'UNDO') {
+    const success = await db.cancelLastReminder(user.id);
+    await sendWhatsAppMessage(from, success ? "🗑️ Cancelled your last reminder." : "You don't have any pending reminders to cancel.");
+    return NextResponse.json({ success: true });
+  }
+
   const parsed = await unifiedParseIntent(body, user.timezone || 'UTC');
 
   if (parsed.intent === 'DONE') {

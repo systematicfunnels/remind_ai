@@ -99,6 +99,33 @@ export const db = {
     }
   },
 
+  async cancelLastReminder(userId: string): Promise<boolean> {
+    try {
+      const lastReminder = await prisma.reminder.findFirst({
+        where: {
+          user_id: userId,
+          status: 'pending',
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+      });
+
+      if (!lastReminder) return false;
+
+      await prisma.reminder.update({
+        where: { id: lastReminder.id },
+        data: {
+          status: 'cancelled',
+        },
+      });
+      return true;
+    } catch (error) {
+      console.error('Error cancelling last reminder:', error);
+      return false;
+    }
+  },
+
   async createReminder(userId: string, task: string, scheduledAt: string): Promise<Reminder | null> {
     try {
       return await prisma.reminder.create({
