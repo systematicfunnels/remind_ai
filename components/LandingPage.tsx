@@ -124,8 +124,10 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-12 gap-8 max-w-3xl mx-auto">
-              <Link 
+              <a 
                 href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20set%20a%20reminder."} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-emerald-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
@@ -133,10 +135,12 @@ export default function LandingPage() {
                 </div>
                 <span className="text-sm font-black text-white uppercase tracking-widest">{t.whatsapp}</span>
                 <span className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-tighter">{t.chatBot}</span>
-              </Link>
+              </a>
 
-              <Link 
+              <a 
                 href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot"} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-sky-500/50 hover:bg-sky-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-sky-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
@@ -144,10 +148,12 @@ export default function LandingPage() {
                 </div>
                 <span className="text-sm font-black text-white uppercase tracking-widest">{t.telegram}</span>
                 <span className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-tighter">{t.chatBot}</span>
-              </Link>
+              </a>
 
-              <Link 
-                href={process.env.NEXT_PUBLIC_INSTAGRAM_LINK || "#"} 
+              <a 
+                href={process.env.NEXT_PUBLIC_INSTAGRAM_LINK || "https://instagram.com/remindai"} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-pink-500/50 hover:bg-pink-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-pink-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
@@ -155,7 +161,7 @@ export default function LandingPage() {
                 </div>
                 <span className="text-sm font-black text-white uppercase tracking-widest">{t.instagram}</span>
                 <span className="text-[10px] text-emerald-500/60 mt-2 font-black uppercase tracking-widest">{t.liveNow}</span>
-              </Link>
+              </a>
             </div>
           </div>
         </section>
@@ -286,13 +292,34 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col gap-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t.platforms}</span>
-              <Link href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.whatsapp}</Link>
-              <Link href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.telegram}</Link>
+              <a 
+                href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number"} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+              >
+                {t.whatsapp}
+              </a>
+              <a 
+                href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot"} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+              >
+                {t.telegram}
+              </a>
             </div>
             <div className="flex flex-col gap-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t.support}</span>
-              <Link href="mailto:support@remindai.com" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.contact}</Link>
-              <Link href="/help" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.help}</Link>
+              <a href="mailto:support@remindai.com" className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.contact}</a>
+              <a 
+                href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number"} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+              >
+                {t.help}
+              </a>
             </div>
           </div>
         </div>
@@ -353,12 +380,14 @@ function PricingCard({ title, price, period = "", features, cta, href, highlight
           </li>
         ))}
       </ul>
-      <Link 
+      <a 
         href={href} 
+        target="_blank"
+        rel="noopener noreferrer"
         className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-widest transition-all ${highlighted ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-900/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
       >
         {cta}
-      </Link>
+      </a>
     </div>
   );
 }
