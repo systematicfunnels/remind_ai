@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       await db.incrementReminderCount(user.id);
       await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
       
-      let confirmation = `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}\n\n(Reply "done" to clear or "undo" to cancel)`;
+      let confirmation = `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}\n\n(Reply "DONE" to clear or "UNDO" to cancel)`;
       if (mediaUrl && mediaType?.startsWith('audio/')) {
         confirmation = `🎤 Heard: "${body}"\n\n${confirmation}`;
       }

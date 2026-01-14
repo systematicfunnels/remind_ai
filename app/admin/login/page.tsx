@@ -56,8 +56,8 @@ export default function AdminLoginPage() {
         </div>
 
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-slate-800/60 p-8 rounded-[2.5rem] shadow-2xl">
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
+          <form onSubmit={handleLogin} className="space-y-8">
+            <div className="space-y-4">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
                 Security Key
               </label>

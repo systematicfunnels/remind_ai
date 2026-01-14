@@ -26,11 +26,11 @@ export default function AdminChart({ data }: { data: ChartData[] }) {
   }, []);
 
   if (!mounted) {
-    return <div className="h-[300px] w-full mt-4 bg-slate-900/10 rounded-3xl animate-pulse" />;
+    return <div className="h-[300px] w-full mt-8 bg-slate-900/10 rounded-[2rem] animate-pulse" />;
   }
 
   return (
-    <div className="h-[300px] w-full mt-4" style={{ minWidth: 0, minHeight: 0 }}>
+    <div className="h-[300px] w-full mt-8" style={{ minWidth: 0, minHeight: 0 }}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart
           data={data}
