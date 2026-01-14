@@ -153,12 +153,17 @@ export async function POST(req: NextRequest) {
 
 async function sendTelegramMessage(chatId: string, text: string) {
   try {
-    await fetch(`${TELEGRAM_API}/sendMessage`, {
+    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: text }),
+      body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' }),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Telegram API Error:', errorData);
+    }
   } catch (error) {
-    console.error('Telegram Error:', error);
+    console.error('❌ Fetch Error while sending to Telegram:', error);
   }
 }
