@@ -19,6 +19,7 @@ export interface ParsedIntent {
   task?: string;
   time?: string; // ISO 8601 string
   timezone?: string; // For TIMEZONE intent
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
 }
 
 export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | null> => {
@@ -45,35 +46,52 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
     const openai = getOpenAI();
     if (!openai) return null;
 
-    const userLocalTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+    const now = new Date();
+    const userLocalTime = now.toLocaleString('en-US', { timeZone: userTimezone });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a intent extraction AI for RemindAI. 
-          Extract the intent and relevant details from the user's message. 
-          The message may be in English, Hindi, or Hinglish (English+Hindi). 
-          Translate the "task" to English for consistency if it's in Hindi.
-          
-          Valid Intents:
-          - CREATE: User wants to set a reminder. Extract "task" and "time" (ISO8601).
-          - LIST: User wants to see pending reminders.
-          - DONE: User wants to complete a reminder.
-          - TIMEZONE: User mentions their location or timezone. Extract "timezone" (e.g., "Asia/Kolkata").
-          - BILLING: User asks about subscription, status, or usage.
-          - ERASE: User wants to delete their data.
-          - HELP: User asks for help.
-          - UNKNOWN: Intent not clear.
+          content: `You are an expert Intent Extraction AI for RemindAI, a high-precision reminder service. 
+          Your goal is 100% accuracy in extracting user intent, tasks, and timing.
 
-          Return ONLY a JSON object in this format: {"intent": "string", "task": "string", "time": "ISO8601", "timezone": "string"}.
-          Current UTC time: ${new Date().toISOString()}.
-          User Timezone: ${userTimezone}.
-          User Local Time: ${userLocalTime}.
+          CORE RULES:
+          1. Multi-lingual: Support English, Hindi, and Hinglish. 
+          2. Task Translation: Always translate the "task" field to English for backend consistency.
+          3. Time Precision: 
+             - Current UTC: ${now.toISOString()}
+             - User Timezone: ${userTimezone}
+             - User Local Time: ${userLocalTime}
+             - Use the User Local Time as the reference for relative terms like "tomorrow", "tonight", "next Monday", "in 2 hours".
+             - Return "time" as a full ISO 8601 string in UTC.
+          4. Recurrence: Detect daily, weekly, or monthly patterns. Default to "none".
           
-          When extracting time for CREATE, always return it as a full ISO8601 string in UTC.
-          If the user says "tomorrow", use their User Local Time to determine what "tomorrow" means.
+          INTENTS:
+          - CREATE: User wants a reminder. Requires "task" and "time".
+          - LIST: User wants to see pending tasks.
+          - DONE: User wants to complete a task.
+          - TIMEZONE: User mentions location/timezone (e.g., "I'm in Delhi", "Set my time to PST").
+          - BILLING: Questions about payment, subscription, or usage.
+          - ERASE: Request to delete all data.
+          - HELP: Request for instructions.
+          - UNKNOWN: Fallback if message is gibberish or unrelated.
+
+          OUTPUT FORMAT:
+          Return ONLY a valid JSON object:
+          {
+            "intent": "CREATE" | "LIST" | "DONE" | "HELP" | "TIMEZONE" | "BILLING" | "ERASE" | "UNKNOWN",
+            "task": "Clean English description of the task",
+            "time": "ISO8601_UTC_STRING",
+            "recurrence": "none" | "daily" | "weekly" | "monthly",
+            "timezone": "IANA_Timezone_String"
+          }
+
+          EXAMPLES:
+          - "remind me to call mom tomorrow at 9pm" -> {"intent": "CREATE", "task": "Call mom", "time": "2024-01-15T15:30:00Z", "recurrence": "none"}
+          - "mummy ko dawai dena hai roz subah 8 baje" -> {"intent": "CREATE", "task": "Give medicine to mother", "time": "2024-01-15T02:30:00Z", "recurrence": "daily"}
+          - "show my tasks" -> {"intent": "LIST"}
           `
         },
         {
@@ -81,13 +99,29 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
           content: message
         }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      temperature: 0, // Set to 0 for maximum deterministic accuracy
     });
 
     const content = response.choices[0].message.content;
     if (!content) return null;
 
-    return JSON.parse(content) as ParsedIntent;
+    const parsed = JSON.parse(content) as ParsedIntent;
+    
+    // Validation for 100% accuracy
+    if (parsed.intent === 'CREATE') {
+      if (!parsed.task || !parsed.time) {
+        console.warn("OpenAI: CREATE intent missing task or time. Returning UNKNOWN.");
+        return { intent: 'UNKNOWN' };
+      }
+      // Ensure time is valid
+      if (isNaN(Date.parse(parsed.time))) {
+        console.warn("OpenAI: Invalid date format. Returning UNKNOWN.");
+        return { intent: 'UNKNOWN' };
+      }
+    }
+
+    return parsed;
   } catch (error) {
     console.error("OpenAI Parsing Error:", error);
     return null;

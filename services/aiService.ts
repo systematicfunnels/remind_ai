@@ -55,20 +55,14 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
   try {
     const openAIResult = await withTimeout(parseWithOpenAI(message, userTimezone), 4000, null);
     if (openAIResult && openAIResult.intent !== 'UNKNOWN') {
-      if (openAIResult.intent === 'CREATE' && openAIResult.task && openAIResult.time) {
-        return {
-          intent: 'CREATE',
-          task: openAIResult.task,
-          time: openAIResult.time,
-          recurrence: (openAIResult as any).recurrence || 'none'
-        };
-      }
-      if (openAIResult.intent === 'TIMEZONE' && openAIResult.timezone) {
-        return { intent: 'TIMEZONE', timezone: openAIResult.timezone };
-      }
-      if (['LIST', 'DONE', 'HELP', 'BILLING', 'ERASE'].includes(openAIResult.intent)) {
-        return { intent: openAIResult.intent as Intent };
-      }
+      console.log(`AI Pipeline: OpenAI Success [${openAIResult.intent}]`);
+      return {
+        intent: openAIResult.intent as Intent,
+        task: openAIResult.task,
+        time: openAIResult.time,
+        timezone: openAIResult.timezone,
+        recurrence: openAIResult.recurrence as RecurrenceRule
+      };
     }
   } catch (error) {
     console.warn("AI Pipeline: OpenAI failed or timed out, falling back to Gemini");
@@ -77,25 +71,15 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
   // 2. Try Gemini (4s timeout)
   try {
     const geminiResult = await withTimeout(parseWithGemini(message, userTimezone), 4000, { intent: 'UNKNOWN' });
-    // Only return if it's a high-confidence intent and NOT from the internal heuristic 
-    // (Gemini's internal fallback might return 'CREATE' for 'remind me...')
-    // To truly test the fallback, we should see if we can distinguish AI from heuristic.
-    // For now, let's assume if it's UNKNOWN, we continue to OpenRouter.
     if (geminiResult && geminiResult.intent !== 'UNKNOWN') {
-      if (geminiResult.intent === 'CREATE' && geminiResult.task && geminiResult.time) {
-        return {
-          intent: 'CREATE',
-          task: geminiResult.task,
-          time: geminiResult.time,
-          recurrence: geminiResult.recurrence || 'none'
-        };
-      }
-      if (geminiResult.intent === 'LIST') return { intent: 'LIST' };
-      if (geminiResult.intent === 'DONE') return { intent: 'DONE' };
-      if (geminiResult.intent === 'TIMEZONE') return { intent: 'TIMEZONE', timezone: geminiResult.timezone };
-      if (geminiResult.intent === 'BILLING') return { intent: 'BILLING' };
-      if (geminiResult.intent === 'ERASE') return { intent: 'ERASE' };
-      if (geminiResult.intent === 'HELP') return { intent: 'HELP' };
+      console.log(`AI Pipeline: Gemini Success [${geminiResult.intent}]`);
+      return {
+        intent: geminiResult.intent as Intent,
+        task: geminiResult.task,
+        time: geminiResult.time,
+        timezone: geminiResult.timezone,
+        recurrence: geminiResult.recurrence as RecurrenceRule
+      };
     }
   } catch (error) {
     console.warn("AI Pipeline: Gemini failed or timed out, falling back to OpenRouter");
@@ -105,18 +89,14 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
   try {
     const orResult = await withTimeout(parseWithOpenRouter(message, userTimezone), 5000, null);
     if (orResult && orResult.intent !== 'UNKNOWN') {
-      if (orResult.intent === 'CREATE' && orResult.task && orResult.time) {
-        return {
-          intent: 'CREATE',
-          task: orResult.task,
-          time: orResult.time,
-          recurrence: (orResult as any).recurrence || 'none'
-        };
-      }
-      if (orResult.intent === 'TIMEZONE') return { intent: 'TIMEZONE', timezone: orResult.timezone };
-      if (['LIST', 'DONE', 'HELP', 'BILLING', 'ERASE'].includes(orResult.intent)) {
-        return { intent: orResult.intent as Intent };
-      }
+      console.log(`AI Pipeline: OpenRouter Success [${orResult.intent}]`);
+      return {
+        intent: orResult.intent as Intent,
+        task: orResult.task,
+        time: orResult.time,
+        timezone: orResult.timezone,
+        recurrence: orResult.recurrence as RecurrenceRule
+      };
     }
   } catch (error) {
     console.error("AI Pipeline: OpenRouter failed");

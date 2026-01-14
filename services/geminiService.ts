@@ -118,16 +118,23 @@ export const processMessageWithAI = async (message: string, userTimezone: string
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-1.5-flash", // Using the more stable 1.5 flash name
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
-        systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.
-        The input can be in English, Hindi, or Hinglish. 
-        Always translate the "task" field to English.
-        
-        Reference User Local Time: ${currentTimeStr} (${userTimezone}).
-        
-        Intents:
+        systemInstruction: `You are RemindAI Controller, an expert in intent extraction and time parsing. 
+        Your goal is 100% accuracy.
+
+        CORE RULES:
+        1. Support English, Hindi, and Hinglish.
+        2. Always translate "task" to English.
+        3. Time Precision:
+           - Reference User Local Time: ${currentTimeStr} (${userTimezone}).
+           - Current UTC: ${now.toISOString()}.
+           - Use Reference User Local Time to calculate absolute UTC time for relative expressions.
+           - Return "time" as UTC ISO8601.
+        4. Recurrence: Detect "none", "daily", "weekly", "monthly".
+
+        INTENTS:
         - CREATE: Set reminder. Fields: task (string), time (ISO8601 string), recurrence (none|daily|weekly|monthly).
         - LIST: Show reminders.
         - DONE: Mark task done. Fields: query (string).
@@ -137,8 +144,9 @@ export const processMessageWithAI = async (message: string, userTimezone: string
         - HELP: Instructions.
         - UNKNOWN: Fallback.
 
-        Always return time in UTC ISO8601 format. If user says "tomorrow", use the provided Reference User Local Time to calculate the correct UTC time.`,
+        OUTPUT: Return strict JSON only.`,
         responseMimeType: "application/json",
+        temperature: 0,
       }
     });
 
@@ -146,7 +154,15 @@ export const processMessageWithAI = async (message: string, userTimezone: string
     if (!text) {
       throw new Error("Empty AI response");
     }
-    return JSON.parse(text) as AIResponse;
+    const parsed = JSON.parse(text) as AIResponse;
+
+    // Validation
+    if (parsed.intent === 'CREATE') {
+      if (!parsed.task || !parsed.time) return { intent: 'UNKNOWN' };
+      if (isNaN(Date.parse(parsed.time))) return { intent: 'UNKNOWN' };
+    }
+    
+    return parsed;
   } catch (error) {
     console.error("Gemini API Error:", error);
     return { intent: 'UNKNOWN' };
