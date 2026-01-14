@@ -13,7 +13,7 @@ export type Intent = 'CREATE' | 'LIST' | 'COMPLETE' | 'HELP' | 'TIMEZONE' | 'BIL
 export interface AIResponse {
   intent: Intent;
   task?: string;
-  delayMinutes?: number;
+  time?: string; // ISO 8601 string
   recurrence?: RecurrenceRule;
   query?: string;
   timezone?: string;
@@ -60,12 +60,42 @@ const fallbackParse = (message: string): AIResponse => {
     return {
       intent: 'CREATE',
       task: task || "Smart Reminder",
-      delayMinutes: Math.max(0.1, delay),
+      time: new Date(Date.now() + Math.max(0.1, delay) * 60000).toISOString(),
       recurrence: msg.includes('every') ? 'daily' : 'none'
     };
   }
 
   return { intent: 'UNKNOWN' };
+};
+
+export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: string = 'audio/ogg'): Promise<string | null> => {
+  const ai = getAI();
+  if (!ai) return null;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: audioBuffer.toString('base64'),
+                mimeType: mimeType
+              }
+            },
+            { text: "Transcribe this audio exactly as heard. Return only the transcribed text." }
+          ]
+        }
+      ]
+    });
+
+    return result.text?.trim() || null;
+  } catch (error) {
+    console.error("Gemini Transcription Error:", error);
+    return null;
+  }
 };
 
 export const processMessageWithAI = async (message: string, userTimezone: string = 'UTC'): Promise<AIResponse> => {
@@ -87,7 +117,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
         Reference User Local Time: ${currentTimeStr} (${userTimezone}).
         
         Intents:
-        - CREATE: Set reminder. Fields: task (string), delayMinutes (number), recurrence (none|daily|weekly|monthly).
+        - CREATE: Set reminder. Fields: task (string), time (ISO8601 string), recurrence (none|daily|weekly|monthly).
         - LIST: Show reminders.
         - COMPLETE: Mark task done. Fields: query (string).
         - TIMEZONE: Update location. Fields: timezone (e.g., "Europe/London").
@@ -96,19 +126,16 @@ export const processMessageWithAI = async (message: string, userTimezone: string
         - HELP: Instructions.
         - UNKNOWN: Fallback.
 
-        Always include delayMinutes for CREATE (relative to now).`,
+        Always return time in UTC ISO8601 format. If user says "tomorrow", use the provided Reference User Local Time to calculate the correct UTC time.`,
         responseMimeType: "application/json",
       }
     });
 
     const text = response.text;
-    
     if (!text) {
       throw new Error("Empty AI response");
     }
-
-    const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-    return parsed;
+    return JSON.parse(text) as AIResponse;
   } catch (error) {
     console.error("Gemini API Error:", error);
     return { intent: 'UNKNOWN' };

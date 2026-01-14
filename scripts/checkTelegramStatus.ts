@@ -1,29 +1,42 @@
-
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
+
 dotenv.config();
 
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const URL = `https://api.telegram.org/bot${TOKEN}/getWebhookInfo`;
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-async function checkWebhook() {
-  if (!TOKEN || TOKEN === 'your_telegram_bot_token') {
-    console.error('❌ TELEGRAM_BOT_TOKEN is not set in .env');
+async function checkStatus() {
+  if (!TELEGRAM_TOKEN) {
+    console.error("❌ TELEGRAM_BOT_TOKEN is missing in .env");
     return;
   }
 
-  console.log('🔍 Checking Telegram Webhook status...');
+  console.log("🔍 Checking Telegram Webhook Status...");
+  
   try {
-    const response = await fetch(URL);
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getWebhookInfo`);
     const data = await response.json();
-    console.log('📦 Webhook Info:', JSON.stringify(data, null, 2));
     
-    if (data.ok && data.result.url === '') {
-      console.log('\n⚠️ No webhook set! Telegram messages won\'t reach your server.');
-      console.log('You need to set a webhook pointing to your public URL.');
+    if (data.ok) {
+      console.log("✅ API Connection: OK");
+      console.log("---------------------------");
+      console.log("Webhook Info:", JSON.stringify(data.result, null, 2));
+      console.log("---------------------------");
+      
+      if (!data.result.url) {
+        console.warn("⚠️ Webhook is NOT set! The bot will not receive messages via webhooks.");
+      } else {
+        console.log(`📡 Webhook URL: ${data.result.url}`);
+        if (data.result.last_error_message) {
+          console.error(`❌ Last Error: ${data.result.last_error_message}`);
+        }
+      }
+    } else {
+      console.error("❌ Telegram API Error:", data.description);
     }
   } catch (error) {
-    console.error('❌ Error checking webhook:', error);
+    console.error("❌ Network Error:", error);
   }
 }
 
-checkWebhook();
+checkStatus();

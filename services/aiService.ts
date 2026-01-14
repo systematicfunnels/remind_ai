@@ -28,7 +28,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallbackValue: T): Prom
  * 2. Gemini (1.5 Flash)
  * 3. Local Heuristic Parser
  */
-export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResponse> => {
+export const unifiedParseIntent = async (message: string, userTimezone: string = 'UTC'): Promise<UnifiedAIResponse> => {
   const lowerMsg = message.toLowerCase().trim();
 
   // Quick Command Heuristics (Save API calls for simple commands)
@@ -50,7 +50,7 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
 
   // 1. Try OpenAI (4s timeout)
   try {
-    const openAIResult = await withTimeout(parseWithOpenAI(message), 4000, null);
+    const openAIResult = await withTimeout(parseWithOpenAI(message, userTimezone), 4000, null);
     if (openAIResult && openAIResult.intent !== 'UNKNOWN') {
       if (openAIResult.intent === 'CREATE' && openAIResult.task && openAIResult.time) {
         return {
@@ -72,21 +72,17 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
 
   // 2. Try Gemini (4s timeout)
   try {
-    const geminiResult = await withTimeout(parseWithGemini(message), 4000, { intent: 'UNKNOWN' });
+    const geminiResult = await withTimeout(parseWithGemini(message, userTimezone), 4000, { intent: 'UNKNOWN' });
     // Only return if it's a high-confidence intent and NOT from the internal heuristic 
     // (Gemini's internal fallback might return 'CREATE' for 'remind me...')
     // To truly test the fallback, we should see if we can distinguish AI from heuristic.
     // For now, let's assume if it's UNKNOWN, we continue to OpenRouter.
     if (geminiResult && geminiResult.intent !== 'UNKNOWN') {
-      if (geminiResult.intent === 'CREATE' && geminiResult.task) {
-        const time = geminiResult.delayMinutes 
-          ? new Date(Date.now() + geminiResult.delayMinutes * 60000).toISOString()
-          : new Date().toISOString();
-        
+      if (geminiResult.intent === 'CREATE' && geminiResult.task && geminiResult.time) {
         return {
           intent: 'CREATE',
           task: geminiResult.task,
-          time
+          time: geminiResult.time
         };
       }
       if (geminiResult.intent === 'LIST') return { intent: 'LIST' };
@@ -102,7 +98,7 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
 
   // 3. Try OpenRouter (Final LLM Fallback - 5s timeout)
   try {
-    const orResult = await withTimeout(parseWithOpenRouter(message), 5000, null);
+    const orResult = await withTimeout(parseWithOpenRouter(message, userTimezone), 5000, null);
     if (orResult && orResult.intent !== 'UNKNOWN') {
       if (orResult.intent === 'CREATE' && orResult.task && orResult.time) {
         return {
@@ -148,26 +144,69 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
     return { intent: 'ERASE' };
   }
 
-  if (lower.includes('remind') || lower.includes('in ') || lower.includes('at ')) {
+  if (lower.includes('remind') || lower.includes('in ') || lower.includes('at ') || lower.includes('tomorrow')) {
     let task = message.replace(/remind me to |remind me /gi, '').trim();
-    let delayMinutes = 10;
+    
+    // Improved Heuristic Time Parsing with Timezone awareness
+    const now = new Date();
+    // Get current time in user's timezone
+    const userNowStr = now.toLocaleString('en-US', { timeZone: userTimezone });
+    const userNow = new Date(userNowStr);
+    
+    let scheduledDate = new Date(now); // Default to now (UTC)
 
-    // Basic time extraction for heuristics
+    // 1. Handle "tomorrow"
+    if (lower.includes('tomorrow')) {
+      scheduledDate.setDate(scheduledDate.getDate() + 1);
+      task = task.replace(/tomorrow/gi, '').trim();
+    }
+
+    // 2. Handle "in X min/hour"
     const minuteMatch = lower.match(/in (\d+)\s*min/);
     const hourMatch = lower.match(/in (\d+)\s*hour/);
     
     if (minuteMatch) {
-      delayMinutes = parseInt(minuteMatch[1]);
+      const mins = parseInt(minuteMatch[1]);
+      scheduledDate = new Date(now.getTime() + mins * 60000);
       task = task.replace(/in \d+\s*min(utes)?/gi, '').trim();
     } else if (hourMatch) {
-      delayMinutes = parseInt(hourMatch[1]) * 60;
+      const hours = parseInt(hourMatch[1]);
+      scheduledDate = new Date(now.getTime() + hours * 3600000);
       task = task.replace(/in \d+\s*hour(s)?/gi, '').trim();
+    }
+
+    // 3. Handle "at X am/pm" (Very basic heuristic)
+    const timeMatch = lower.match(/at (\d+)\s*(am|pm)/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const ampm = timeMatch[2].toLowerCase();
+      if (ampm === 'pm' && hours < 12) hours += 12;
+      if (ampm === 'am' && hours === 12) hours = 0;
+      
+      // This is tricky: "at 9pm" depends on the user's timezone.
+      // We need to set the hours in the user's local time, then convert back to UTC.
+      
+      // Create a date object representing the target time in the user's timezone
+      const targetInUserTZ = new Date(userNow);
+      targetInUserTZ.setHours(hours, 0, 0, 0);
+      
+      // If the time has already passed today, assume tomorrow (unless we already handled "tomorrow")
+      if (targetInUserTZ < userNow && !lower.includes('tomorrow')) {
+        targetInUserTZ.setDate(targetInUserTZ.getDate() + 1);
+      }
+      
+      // Convert back to UTC: 
+      // The difference between userNow and now is the timezone offset.
+      const offset = now.getTime() - userNow.getTime();
+      scheduledDate = new Date(targetInUserTZ.getTime() + offset);
+      
+      task = task.replace(/at \d+\s*(am|pm)/gi, '').trim();
     }
 
     return {
       intent: 'CREATE',
       task: task || "Reminder",
-      time: new Date(Date.now() + delayMinutes * 60000).toISOString()
+      time: scheduledDate.toISOString()
     };
   }
 

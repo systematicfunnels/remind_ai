@@ -5,7 +5,7 @@ export interface OpenRouterParsedResponse {
   timezone?: string;
 }
 
-export const parseWithOpenRouter = async (message: string): Promise<OpenRouterParsedResponse | null> => {
+export const parseWithOpenRouter = async (message: string, userTimezone: string = 'UTC'): Promise<OpenRouterParsedResponse | null> => {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     console.warn("OPENROUTER_API_KEY is missing. Skipping OpenRouter fallback.");
@@ -13,6 +13,8 @@ export const parseWithOpenRouter = async (message: string): Promise<OpenRouterPa
   }
 
   try {
+    const userLocalTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -39,6 +41,11 @@ export const parseWithOpenRouter = async (message: string): Promise<OpenRouterPa
 
             Return ONLY a JSON object in this format: {"intent": "string", "task": "string", "time": "ISO8601", "timezone": "string"}.
             Current UTC time: ${new Date().toISOString()}.
+            User Timezone: ${userTimezone}.
+            User Local Time: ${userLocalTime}.
+
+            When extracting time for CREATE, always return it as a full ISO8601 string in UTC.
+            If the user says "tomorrow", use their User Local Time to determine what "tomorrow" means.
             `
           },
           {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { scheduleReminder } from '@/lib/queue';
 import { unifiedParseIntent } from '@/services/aiService';
-import { transcribeAudio } from '@/services/openaiService';
+import { unifiedTranscribe } from '@/services/voiceService';
 import twilio from 'twilio';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       });
       const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
       
-      const transcription = await transcribeAudio(audioBuffer);
+      const transcription = await unifiedTranscribe(audioBuffer, mediaType);
       if (transcription) {
         body = transcription;
         // Combined feedback will be sent in the final confirmation step
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Parse Intent (Handles commands & natural language)
-  const parsed = await unifiedParseIntent(body);
+  const parsed = await unifiedParseIntent(body, user.timezone || 'UTC');
 
   if (parsed.intent === 'DONE') {
     const success = await db.markLastReminderDone(user.id);
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       await sendWhatsAppMessage(from, "You have no pending reminders.");
     } else {
       const list = reminders
-        .map(r => `• ${r.task} (${new Date(r.scheduled_at).toLocaleString()})`)
+        .map(r => `• ${r.task} (${new Date(r.scheduled_at).toLocaleString('en-US', { timeZone: user.timezone || 'UTC' })})`)
         .join('\n');
       await sendWhatsAppMessage(from, `Your pending reminders:\n${list}`);
     }
@@ -137,7 +137,13 @@ export async function POST(req: NextRequest) {
       await db.incrementReminderCount(user.id);
       await scheduleReminder(reminder.id, user.id, parsed.task, parsed.time);
       
-      let confirmation = `✅ Set: ${parsed.task} on ${new Date(parsed.time).toLocaleString()}\n\n(Reply "DONE" to clear or "UNDO" to cancel)`;
+      const localTime = new Date(parsed.time).toLocaleString('en-US', { 
+        timeZone: user.timezone || 'UTC',
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+
+      let confirmation = `✅ Set: ${parsed.task} on ${localTime}\n\n(Reply "DONE" to clear or "UNDO" to cancel)`;
       if (mediaUrl && mediaType?.startsWith('audio/')) {
         confirmation = `🎤 Heard: "${body}"\n\n${confirmation}`;
       }

@@ -39,10 +39,12 @@ export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | nul
   }
 };
 
-export const parseReminderIntent = async (message: string): Promise<ParsedIntent | null> => {
+export const parseReminderIntent = async (message: string, userTimezone: string = 'UTC'): Promise<ParsedIntent | null> => {
   try {
     const openai = getOpenAI();
     if (!openai) return null;
+
+    const userLocalTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -64,6 +66,11 @@ export const parseReminderIntent = async (message: string): Promise<ParsedIntent
 
           Return ONLY a JSON object in this format: {"intent": "string", "task": "string", "time": "ISO8601", "timezone": "string"}.
           Current UTC time: ${new Date().toISOString()}.
+          User Timezone: ${userTimezone}.
+          User Local Time: ${userLocalTime}.
+          
+          When extracting time for CREATE, always return it as a full ISO8601 string in UTC.
+          If the user says "tomorrow", use their User Local Time to determine what "tomorrow" means.
           `
         },
         {
