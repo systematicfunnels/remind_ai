@@ -95,7 +95,7 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
                 mimeType: normalizedMimeType
               }
             },
-            { text: "Transcribe this audio exactly as heard. Return only the transcribed text." }
+            { text: "Transcribe this audio exactly as heard. The audio might be in English, Hindi, or a mix of both (Hinglish). Return only the transcribed text." }
           ]
         }
       ]
@@ -130,6 +130,9 @@ export const processMessageWithAI = async (message: string, userTimezone: string
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.
+        The input can be in English, Hindi, or Hinglish. 
+        Always translate the "task" field to English.
+        
         Reference User Local Time: ${currentTimeStr} (${userTimezone}).
         
         Intents:

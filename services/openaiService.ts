@@ -30,6 +30,7 @@ export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | nul
     const transcription = await openai.audio.transcriptions.create({
       file: await OpenAI.toFile(audioBuffer, 'voice.ogg'),
       model: "whisper-1",
+      prompt: "This is a reminder app. The audio might be in English, Hindi, or a mix of both (Hinglish). Please transcribe accurately.",
     });
 
     return transcription.text;
@@ -53,6 +54,8 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
           role: "system",
           content: `You are a intent extraction AI for RemindAI. 
           Extract the intent and relevant details from the user's message. 
+          The message may be in English, Hindi, or Hinglish (English+Hindi). 
+          Translate the "task" to English for consistency if it's in Hindi.
           
           Valid Intents:
           - CREATE: User wants to set a reminder. Extract "task" and "time" (ISO8601).
