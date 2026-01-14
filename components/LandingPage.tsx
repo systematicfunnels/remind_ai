@@ -125,7 +125,7 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-12 gap-8 max-w-3xl mx-auto">
               <Link 
-                href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "#"} 
+                href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20set%20a%20reminder."} 
                 className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-emerald-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
@@ -136,7 +136,7 @@ export default function LandingPage() {
               </Link>
 
               <Link 
-                href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "#"} 
+                href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot"} 
                 className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-sky-500/50 hover:bg-sky-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-sky-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
