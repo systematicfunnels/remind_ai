@@ -149,10 +149,25 @@ export const unifiedParseIntent = async (message: string): Promise<UnifiedAIResp
   }
 
   if (lower.includes('remind') || lower.includes('in ') || lower.includes('at ')) {
+    let task = message.replace(/remind me to |remind me /gi, '').trim();
+    let delayMinutes = 10;
+
+    // Basic time extraction for heuristics
+    const minuteMatch = lower.match(/in (\d+)\s*min/);
+    const hourMatch = lower.match(/in (\d+)\s*hour/);
+    
+    if (minuteMatch) {
+      delayMinutes = parseInt(minuteMatch[1]);
+      task = task.replace(/in \d+\s*min(utes)?/gi, '').trim();
+    } else if (hourMatch) {
+      delayMinutes = parseInt(hourMatch[1]) * 60;
+      task = task.replace(/in \d+\s*hour(s)?/gi, '').trim();
+    }
+
     return {
       intent: 'CREATE',
-      task: message.replace(/remind me to |remind me /gi, '').trim(),
-      time: new Date(Date.now() + 10 * 60000).toISOString() // Default to 10 mins
+      task: task || "Reminder",
+      time: new Date(Date.now() + delayMinutes * 60000).toISOString()
     };
   }
 

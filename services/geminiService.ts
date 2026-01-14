@@ -80,7 +80,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: `You are RemindAI Controller. Parse user input into strict JSON.
