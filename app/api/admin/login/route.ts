@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing lockout (rate limiting)
-    const attempt = await (prisma as any).loginAttempt.findFirst({
+    const attempt = await prisma.loginAttempt.findFirst({
       where: { ip_address: ip }
     });
 
@@ -30,14 +30,14 @@ export async function POST(request: NextRequest) {
         }, { status: 429 });
       } else {
         // Reset after lockout duration
-        await (prisma as any).loginAttempt.delete({ where: { id: attempt.id } });
+        await prisma.loginAttempt.delete({ where: { id: attempt.id } });
       }
     }
 
     if (password === adminSecret) {
       // Clear attempts on success
       if (attempt) {
-        await (prisma as any).loginAttempt.delete({ where: { id: attempt.id } });
+        await prisma.loginAttempt.delete({ where: { id: attempt.id } });
       }
 
       const response = NextResponse.json({ success: true });
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Record failed attempt
     if (attempt) {
-      await (prisma as any).loginAttempt.update({
+      await prisma.loginAttempt.update({
         where: { id: attempt.id },
         data: { 
           attempts: { increment: 1 },
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         }
       });
     } else {
-      await (prisma as any).loginAttempt.create({
+      await prisma.loginAttempt.create({
         data: { ip_address: ip }
       });
     }

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, Bell, BarChart3, Settings, Search, 
-  Menu, X, LogOut, Terminal, Zap, ChevronRight
+  Menu, X, LogOut, Zap
 } from 'lucide-react';
-import { Badge, Toast, Tooltip, Breadcrumbs } from '@/components/admin/AdminUI';
+import { Toast, Breadcrumbs } from '@/components/admin/AdminUI';
 import { logout } from '@/lib/adminActions';
 
 const menuItems = [

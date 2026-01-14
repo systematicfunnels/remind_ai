@@ -8,9 +8,20 @@ import { Badge, Skeleton, Tooltip, Card } from '@/components/admin/AdminUI';
 import { getAdminStats } from '@/lib/adminActions';
 import AdminChart from '@/components/admin/AdminChart';
 
+interface ChartDataItem {
+  name: string;
+  reminders: number;
+  users: number;
+}
+
 export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<{ totalUsers: number, totalReminders: number, mrr: number, chartData: any[] } | null>(null);
+  const [stats, setStats] = useState<{ 
+    totalUsers: number, 
+    totalReminders: number, 
+    mrr: number, 
+    chartData: ChartDataItem[] 
+  } | null>(null);
   
   useEffect(() => {
     const fetchStats = async () => {

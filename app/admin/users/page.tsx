@@ -19,7 +19,7 @@ interface UserData {
   created_at: Date | null;
 }
 
-function ActionButton({ icon: Icon, onClick, color, label }: { icon: any, onClick: () => void, color: string, label: string }) {
+function ActionButton({ icon: Icon, onClick, color, label }: { icon: React.ElementType, onClick: () => void, color: string, label: string }) {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {

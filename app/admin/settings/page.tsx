@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { 
-  Globe, MessageSquare, Smartphone, Mic, Database, AlertTriangle, HelpCircle, Activity, ShieldCheck
+  MessageSquare, Smartphone, Mic, AlertTriangle, ShieldCheck
 } from 'lucide-react';
-import { Badge, Toast } from '@/components/admin/AdminUI';
+import { Toast } from '@/components/admin/AdminUI';
 
 const ToggleSetting = ({ title, icon: Icon, color, initialValue }: { title: string; icon: React.ElementType; color: string; initialValue?: boolean }) => {
   const [enabled, setEnabled] = useState(initialValue || false);
@@ -34,20 +34,6 @@ const ToggleSetting = ({ title, icon: Icon, color, initialValue }: { title: stri
     </div>
   );
 };
-
-function StatusRow({ title, active }: { title: string; active: boolean }) {
-  return (
-    <div className="flex items-center justify-between group">
-       <div className="flex items-center gap-4">
-          <div className={`p-4 rounded-xl bg-slate-950 border border-slate-800 group-hover:scale-110 transition-transform`}>
-             <Activity size={18} className={active ? 'text-emerald-400' : 'text-slate-600'} />
-          </div>
-          <span className="text-sm font-bold text-slate-200">{title}</span>
-       </div>
-       <Badge variant={active ? 'success' : 'info'}>{active ? 'Active' : 'Standby'}</Badge>
-    </div>
-  );
-}
 
 export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);

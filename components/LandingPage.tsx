@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { 
   Zap, MessageSquare, Smartphone, 
   Shield, Mic, Brain, Instagram,
-  CheckCircle2, Star, ArrowRight,
-  Clock, Bell, Sparkles, Globe
+  CheckCircle2, Bell, Globe
 } from 'lucide-react';
 
 const translations = {

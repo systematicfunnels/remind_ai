@@ -1,28 +1,8 @@
 import { prisma } from '@/lib/prisma';
+import { User as PrismaUser, Reminder as PrismaReminder } from '@prisma/client';
 
-export interface User {
-  id: string;
-  phone_id: string;
-  channel: string | null;
-  sub_status: string | null;
-  reminder_count: number | null;
-  timezone: string | null;
-  is_blocked: boolean | null;
-  payment_id: string | null;
-  last_active_at: Date | null;
-  is_erased: boolean | null;
-  created_at: Date | null;
-}
-
-export interface Reminder {
-  id: string;
-  user_id: string | null;
-  task: string;
-  scheduled_at: Date;
-  status: string | null;
-  failure_reason?: string | null;
-  done_at?: Date | null;
-}
+export type User = PrismaUser;
+export type Reminder = PrismaReminder;
 
 export const db = {
   async getUserByPhone(phoneId: string): Promise<User | null> {
@@ -42,7 +22,7 @@ export const db = {
         }
       }
       
-      return user as any as User | null;
+      return user;
     } catch (error) {
       console.error('Error fetching user with Prisma:', error);
       return null;
@@ -59,7 +39,7 @@ export const db = {
           reminder_count: 0,
           last_active_at: new Date(),
         },
-      }) as any as User | null;
+      });
     } catch (error) {
       console.error('Error creating user with Prisma:', error);
       return null;
@@ -88,7 +68,7 @@ export const db = {
       return await prisma.user.update({
         where: { id: userId },
         data: { is_blocked: blocked }
-      }) as any as User | null;
+      });
     } catch (error) {
       console.error('Error blocking user:', error);
       return null;
@@ -193,7 +173,7 @@ export const db = {
     try {
       return await prisma.user.update({
         where: { id: userId },
-        data: { timezone } as any
+        data: { timezone }
       });
     } catch (error) {
       console.error('Error updating timezone:', error);
@@ -215,7 +195,7 @@ export const db = {
           is_blocked: true,
           payment_id: null,
           reminder_count: 0
-        } as any
+        }
       });
     } catch (error) {
       console.error('Error erasing user data:', error);
