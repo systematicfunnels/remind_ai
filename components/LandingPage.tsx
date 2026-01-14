@@ -237,7 +237,7 @@ export default function LandingPage() {
                     "Community Support"
                   ]}
                   cta={t.startFree}
-                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "#"}
+                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20start%20for%20free."}
                 />
               </div>
               <div className="col-span-12 md:col-span-6">
@@ -254,7 +254,7 @@ export default function LandingPage() {
                     "Multi-platform Sync"
                   ]}
                   cta={t.goPremium}
-                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "#"}
+                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20upgrade%20to%20Premium."}
                 />
               </div>
             </div>
@@ -286,8 +286,8 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col gap-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t.platforms}</span>
-              <Link href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "#"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.whatsapp}</Link>
-              <Link href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "#"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.telegram}</Link>
+              <Link href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.whatsapp}</Link>
+              <Link href={process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot"} className="text-[11px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">{t.telegram}</Link>
             </div>
             <div className="flex flex-col gap-4">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t.support}</span>

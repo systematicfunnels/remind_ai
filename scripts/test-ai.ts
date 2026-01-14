@@ -4,7 +4,7 @@ import { unifiedParseIntent } from '../services/aiService';
 dotenv.config();
 
 const testCases = [
-  "Remind me to call Mom in 5 minutes"
+  "tomorrow morning 10am i have meeting"
 ];
 
 async function runTests() {

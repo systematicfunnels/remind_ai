@@ -1,5 +1,5 @@
 
-import fetch from 'node-fetch';
+// Native fetch is available in Node 18+
 
 const WEBHOOK_URL = 'http://localhost:3000/api/webhooks/telegram';
 const SECRET_TOKEN = 'test-secret-token'; // This should match TELEGRAM_SECRET_TOKEN in .env
