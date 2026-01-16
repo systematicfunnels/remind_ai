@@ -68,16 +68,18 @@ export const db = {
     password?: string;
     channel?: string;
     role?: 'user' | 'admin';
+    bot_name?: string;
   }): Promise<User | null> {
-    const { phoneId, email, password, channel = 'unknown', role = 'user' } = params;
+    const { phoneId, email, password, channel = 'unknown', role = 'user', bot_name = 'My Bot' } = params;
     try {
-      return await prisma.user.create({
+      return await (prisma.user as any).create({
         data: {
           phone_id: phoneId,
           email,
           password,
           channel,
           role,
+          bot_name,
           sub_status: 'trial',
           reminder_count: 0,
           last_active_at: new Date(),

@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
 
     const result = await unifiedParseIntent(message, timezone || 'UTC');
     
+    // Safety check for n8n: Ensure we don't return unevaluated expressions in task/time
+    if (result.task && result.task.includes('{{')) result.task = 'Reminder';
+    
     return NextResponse.json(result);
   } catch (error) {
     logger.error('API Parse Error', { error });

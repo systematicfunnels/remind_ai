@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Active Bot</span>
                 <p className="text-xl font-black text-white uppercase italic tracking-tight mb-4">{(user as any).bot_name || 'My Bot'}</p>
                 <a 
-                  href={(user as any).channel === 'telegram' ? (process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot") : (process.env.NEXT_PUBLIC_WHATSAPP_LINK || `https://wa.me/${process.env.TWILIO_WHATSAPP_NUMBER}`)}
+                  href={user.channel === 'telegram' ? (process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot") : (process.env.NEXT_PUBLIC_WHATSAPP_LINK || `https://wa.me/${process.env.TWILIO_WHATSAPP_NUMBER}`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20 group"
@@ -132,22 +132,6 @@ export default async function DashboardPage() {
                 </div>
                 <ExternalLink size={20} className="text-sky-500/40 group-hover:text-sky-500 transition-colors" />
               </a>
-
-              <div 
-                className="flex items-center justify-between p-6 bg-pink-500/10 border border-pink-500/20 rounded-3xl opacity-50 cursor-not-allowed group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-pink-500 rounded-2xl text-white">
-                    <Smartphone size={24} />
-                  </div>
-                  <div>
-                    <span className="block text-sm font-black text-white uppercase tracking-widest">Instagram</span>
-                    <span className="text-[10px] font-bold text-pink-400/80 uppercase tracking-tighter">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

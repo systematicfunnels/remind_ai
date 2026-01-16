@@ -14,9 +14,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid bot name' }, { status: 400 });
     }
 
-    await prisma.user.update({
+    // @ts-ignore - Prisma client type sync issue
+    await (prisma.user as any).update({
       where: { id: user.id },
-      data: { bot_name: botName } as any,
+      data: { bot_name: botName },
     });
 
     return NextResponse.json({ success: true });

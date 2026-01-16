@@ -5,6 +5,8 @@ const envSchema = z.object({
   UPSTASH_REDIS_URL: z.string().url(),
   ADMIN_SECRET: z.string().min(8),
   API_SECRET: z.string().min(8),
+  USER_SESSION_SECRET: z.string().optional(),
+  RAZORPAY_CHECKOUT_LINK: z.string().optional(),
   
   // AI Services
   OPENAI_API_KEY: z.string().optional(),

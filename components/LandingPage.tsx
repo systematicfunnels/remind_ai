@@ -15,7 +15,6 @@ const translations = {
     heroSub: "Just chat or record a voice note like \"remind me at 10pm\". Our AI schedules it and sends the reminder back to your chat.",
     whatsapp: "WhatsApp",
     telegram: "Telegram",
-    instagram: "Instagram",
     chatBot: "Chat with Bot",
     liveNow: "Live Now",
     howItWorks: "How it Works",
@@ -48,7 +47,6 @@ const translations = {
     heroSub: "बस चैट करें या वॉइस नोट रिकॉर्ड करें जैसे \"रात 10 बजे याद दिलाना\"। हमारा AI इसे शेड्यूल करता है और आपकी चैट पर रिमाइंडर भेजता है।",
     whatsapp: "व्हाट्सएप",
     telegram: "टेलीग्राम",
-    instagram: "इंस्टाग्राम",
     chatBot: "बॉट के साथ चैट करें",
     liveNow: "अभी लाइव है",
     howItWorks: "यह कैसे काम करता है",
@@ -140,7 +138,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-12 gap-6 max-w-4xl mx-auto">
               <Link 
                 href="/login?platform=whatsapp"
-                className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-500"
+                className="col-span-12 sm:col-span-6 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-emerald-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
                   <MessageSquare size={32} className="text-emerald-500" fill="currentColor" />
@@ -151,23 +149,12 @@ export default function LandingPage() {
 
               <Link 
                 href="/login?platform=telegram"
-                className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-sky-500/50 hover:bg-sky-500/5 transition-all duration-500"
+                className="col-span-12 sm:col-span-6 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-sky-500/50 hover:bg-sky-500/5 transition-all duration-500"
               >
                 <div className="p-4 bg-sky-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
                   <Smartphone size={32} className="text-sky-500" fill="currentColor" />
                 </div>
                 <span className="text-sm font-black text-white uppercase tracking-widest">{t.telegram}</span>
-                <span className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-tighter">{t.chatBot}</span>
-              </Link>
-
-              <Link 
-                href="/login?platform=instagram"
-                className="col-span-12 sm:col-span-4 group relative flex flex-col items-center justify-center p-8 bg-slate-900/50 border border-slate-800 rounded-3xl hover:border-pink-500/50 hover:bg-pink-500/5 transition-all duration-500"
-              >
-                <div className="p-4 bg-pink-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                  <Smartphone size={32} className="text-pink-500" fill="currentColor" />
-                </div>
-                <span className="text-sm font-black text-white uppercase tracking-widest">{t.instagram}</span>
                 <span className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-tighter">{t.chatBot}</span>
               </Link>
             </div>
@@ -363,7 +350,6 @@ export default function LandingPage() {
             <div className="flex -space-x-2">
               <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">W</div>
               <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">T</div>
-              <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[8px] font-bold text-white">I</div>
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-700">Multi-Channel Support</span>
           </div>

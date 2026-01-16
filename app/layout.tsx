@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "RemindAI - Your AI-Powered Personal Reminder Assistant",
-  description: "Schedule reminders naturally via WhatsApp, Telegram, and Instagram using voice or text. Never forget a task again with RemindAI's intelligent scheduling.",
+  description: "Schedule reminders naturally via WhatsApp and Telegram using voice or text. Never forget a task again with RemindAI's intelligent scheduling.",
   keywords: ["AI reminder", "WhatsApp bot", "Telegram bot", "voice reminders", "productivity tool", "task management"],
   authors: [{ name: "RemindAI Team" }],
 };
