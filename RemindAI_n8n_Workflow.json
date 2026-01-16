@@ -109,6 +109,10 @@
               "parameterType": "formBinaryData",
               "name": "file",
               "inputDataFieldName": "data"
+            },
+            {
+              "name": "mimeType",
+              "value": "={{$node[\"Telegram Trigger\"].json.message.voice.mime_type || 'audio/ogg'}}"
             }
           ]
         },
@@ -141,7 +145,7 @@
           "parameters": [
             {
               "name": "message",
-              "value": "={{$node[\"Transcribe\"] ? $node[\"Transcribe\"].json.text : $node[\"Telegram Trigger\"].json.message.text}}"
+              "value": "={{ $json.text || $node[\"Telegram Trigger\"].json.message.text }}"
             },
             {
               "name": "timezone",
