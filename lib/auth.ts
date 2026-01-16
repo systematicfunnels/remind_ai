@@ -29,7 +29,7 @@ export async function getCurrentUser() {
   
   try {
     const decoded = Buffer.from(session.value, 'base64').toString('ascii');
-    const [userId, secret] = decoded.split('-');
+    const { userId, secret } = JSON.parse(decoded);
     
     const expectedSecret = process.env.USER_SESSION_SECRET || 'remindai-user-secret';
     if (secret !== expectedSecret) return null;

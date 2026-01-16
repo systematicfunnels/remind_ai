@@ -3,7 +3,8 @@
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"]
+        "updates": ["message"],
+        "path": "telegram-inbound"
       },
       "id": "telegram-trigger",
       "name": "Telegram Trigger",
@@ -13,7 +14,8 @@
     },
     {
       "parameters": {
-        "options": {}
+        "options": {},
+        "path": "whatsapp-inbound"
       },
       "id": "whatsapp-trigger",
       "name": "WhatsApp Trigger",
@@ -115,7 +117,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  \"userId\": $('Config').item.json.phoneId,\n  \"intent\": $json.intent,\n  \"task\": $json.task,\n  \"time\": $json.time,\n  \"recurrence\": $json.recurrence,\n  \"query\": $json.query\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  \"userId\": $('Config').item.json.phoneId,\n  \"intent\": $json.intent,\n  \"task\": $json.task,\n  \"time\": $json.time,\n  \"recurrence\": $json.recurrence,\n  \"query\": $json.query,\n  \"timezone\": $json.timezone\n}) }}",
         "options": {}
       },
       "id": "backend-action",

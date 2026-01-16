@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     
     // Set session cookie
     const userSecret = process.env.USER_SESSION_SECRET || 'remindai-user-secret';
-    const sessionValue = Buffer.from(`${user.id}-${userSecret}`).toString('base64');
+    const sessionValue = Buffer.from(JSON.stringify({ userId: user.id, secret: userSecret })).toString('base64');
     
     response.cookies.set('user_session', sessionValue, {
       httpOnly: true,

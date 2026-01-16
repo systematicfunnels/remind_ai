@@ -8,6 +8,7 @@
     "postinstall": "prisma generate",
     "build": "prisma generate && next build",
     "start": "next start",
+    "n8n": "npx n8n",
     "lint": "next lint"
   },
   "dependencies": {

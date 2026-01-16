@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 dotenv.config();
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const WEBHOOK_URL = "https://remind-ai-m49w.vercel.app/api/webhooks/telegram";
+const WEBHOOK_URL = process.argv[2] || "https://remind-ai-m49w.vercel.app/api/webhooks/telegram";
 const SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN;
 
 async function setWebhook() {

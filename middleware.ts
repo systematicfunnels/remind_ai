@@ -46,23 +46,29 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Protect /dashboard route
-  if (path.startsWith('/dashboard')) {
+  // Protect /dashboard and /login routes
+  if (path.startsWith('/dashboard') || path === '/login') {
     const cookie = request.cookies.get('user_session');
+    let isValid = false;
     
-    if (!cookie) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    
-    try {
-      const decoded = Buffer.from(cookie.value, 'base64').toString('ascii');
-      const [, secret] = decoded.split('-');
-      const expectedSecret = process.env.USER_SESSION_SECRET || 'remindai-user-secret';
-      
-      if (secret !== expectedSecret) {
-        return NextResponse.redirect(new URL('/login', request.url));
+    if (cookie) {
+      try {
+        const decoded = Buffer.from(cookie.value, 'base64').toString('ascii');
+        const { userId, secret } = JSON.parse(decoded);
+        const expectedSecret = process.env.USER_SESSION_SECRET || 'remindai-user-secret';
+        isValid = secret === expectedSecret && !!userId;
+      } catch {
+        isValid = false;
       }
-    } catch {
+    }
+
+    // Redirect authorized users away from login page
+    if (path === '/login' && isValid) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    // Redirect unauthorized users to login page
+    if (path.startsWith('/dashboard') && !isValid) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -71,5 +77,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*', '/dashboard', '/dashboard/:path*'],
+  matcher: ['/admin', '/admin/:path*', '/dashboard', '/dashboard/:path*', '/login'],
 };
