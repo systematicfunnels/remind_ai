@@ -4,6 +4,7 @@ export interface OpenRouterParsedResponse {
   time?: string;
   timezone?: string;
   recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+  query?: string;
 }
 
 export const parseWithOpenRouter = async (message: string, userTimezone: string = 'UTC'): Promise<OpenRouterParsedResponse | null> => {
@@ -30,21 +31,39 @@ export const parseWithOpenRouter = async (message: string, userTimezone: string 
         messages: [
           {
             role: "system",
-            content: `You are an expert Intent Extraction AI. Goal: 100% accuracy.
-            
+            content: `You are RemindAI Controller, a high-precision Intent Extraction AI. 
+            Your goal is 100% accuracy in extracting user intent, tasks, and timing.
+
             CORE RULES:
-            1. Language: English, Hindi, Hinglish. Translate "task" to English.
-            2. Time: 
-               - UTC Now: ${now.toISOString()}
-               - User Local Time: ${userLocalTime} (${userTimezone})
-               - Return "time" in UTC ISO8601.
-            3. Recurrence: Detect daily, weekly, monthly. Default "none".
+            1. Multi-lingual Support: Understand English, Hindi, and Hinglish.
+            2. Task Translation: Always translate the "task" field to English.
+            3. Time Precision:
+               - Current UTC: ${now.toISOString()}
+               - User Timezone: ${userTimezone}
+               - User Local Time: ${userLocalTime}
+               - Use User Local Time as reference for relative terms.
+               - Return "time" as UTC ISO8601 string.
+            4. Recurrence: Detect "none", "daily", "weekly", "monthly".
 
             INTENTS:
-            - CREATE: {"task": "...", "time": "...", "recurrence": "..."}
-            - LIST, DONE, TIMEZONE, BILLING, ERASE, HELP, UNKNOWN.
+            - CREATE: Requires "task" and "time".
+            - LIST: Show pending tasks.
+            - DONE: Complete a task. Use "query" for search.
+            - TIMEZONE: Update location.
+            - BILLING: Payment questions.
+            - ERASE: Delete data.
+            - HELP: Instructions.
+            - UNKNOWN: Fallback.
 
-            Return ONLY JSON.`
+            Return ONLY valid JSON:
+            {
+              "intent": "CREATE" | "LIST" | "DONE" | "HELP" | "TIMEZONE" | "BILLING" | "ERASE" | "UNKNOWN",
+              "task": "Clean English description",
+              "time": "ISO8601_UTC_STRING",
+              "recurrence": "none" | "daily" | "weekly" | "monthly",
+              "query": "search query",
+              "timezone": "IANA_Timezone_String"
+            }`
           },
           {
             role: "user",
@@ -64,19 +83,25 @@ export const parseWithOpenRouter = async (message: string, userTimezone: string 
 
     const parsed = JSON.parse(content);
     
-    // Validation
+    // Strict Validation for 100% Accuracy
     const validated: OpenRouterParsedResponse = {
-      intent: parsed.intent || 'UNKNOWN',
+      intent: (parsed.intent || 'UNKNOWN') as OpenRouterParsedResponse['intent'],
       task: parsed.task,
       time: parsed.time,
       timezone: parsed.timezone,
-      recurrence: parsed.recurrence || 'none'
+      recurrence: parsed.recurrence || 'none',
+      query: parsed.query
     };
 
     if (validated.intent === 'CREATE') {
       if (!validated.task || !validated.time || isNaN(Date.parse(validated.time))) {
+        console.warn("OpenRouter: CREATE intent missing task or time. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
+    }
+
+    if (validated.intent === 'DONE' && !validated.query) {
+      validated.query = message.replace(/done|complete|finish|mark/gi, '').trim();
     }
 
     return validated;

@@ -60,6 +60,7 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         intent: openAIResult.intent as Intent,
         task: openAIResult.task,
         time: openAIResult.time,
+        query: openAIResult.query,
         timezone: openAIResult.timezone,
         recurrence: openAIResult.recurrence as RecurrenceRule
       };
@@ -77,6 +78,7 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         intent: geminiResult.intent as Intent,
         task: geminiResult.task,
         time: geminiResult.time,
+        query: geminiResult.query,
         timezone: geminiResult.timezone,
         recurrence: geminiResult.recurrence as RecurrenceRule
       };
@@ -94,6 +96,7 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
         intent: orResult.intent as Intent,
         task: orResult.task,
         time: orResult.time,
+        query: orResult.query,
         timezone: orResult.timezone,
         recurrence: orResult.recurrence as RecurrenceRule
       };

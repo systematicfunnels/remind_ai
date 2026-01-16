@@ -14,9 +14,6 @@ const nextConfig = {
   },
   serverExternalPackages: ['bullmq', 'ioredis'],
   transpilePackages: ['lucide-react'],
-  experimental: {
-    instrumentationHook: true,
-  },
 };
 
 export default nextConfig;

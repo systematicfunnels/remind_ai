@@ -76,11 +76,18 @@ export async function POST(req: NextRequest) {
   const parsed = await unifiedParseIntent(text, user.timezone || 'UTC');
 
   if (parsed.intent === 'DONE') {
-    const success = await db.markLastReminderDone(user.id);
-    if (success) {
-      await sendTelegramMessage(chatId, "✅ Marked your most recent reminder as done!");
+    let success = false;
+    if (parsed.query) {
+      success = await db.markReminderDoneByQuery(user.id, parsed.query);
     } else {
-      await sendTelegramMessage(chatId, "You don't have any pending reminders.");
+      success = await db.markLastReminderDone(user.id);
+    }
+    
+    if (success) {
+      const msg = parsed.query ? `✅ Marked "${parsed.query}" as done!` : "✅ Marked your most recent reminder as done!";
+      await sendTelegramMessage(chatId, msg);
+    } else {
+      await sendTelegramMessage(chatId, "I couldn't find any pending reminders matching that.");
     }
     return NextResponse.json({ success: true });
   }

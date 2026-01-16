@@ -118,33 +118,48 @@ export const processMessageWithAI = async (message: string, userTimezone: string
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // Using the more stable 1.5 flash name
+      model: "gemini-1.5-flash",
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
-        systemInstruction: `You are RemindAI Controller, an expert in intent extraction and time parsing. 
-        Your goal is 100% accuracy.
+        systemInstruction: `You are RemindAI Controller, a high-precision Intent Extraction AI. 
+        Your goal is 100% accuracy in extracting user intent, tasks, and timing.
 
         CORE RULES:
-        1. Support English, Hindi, and Hinglish.
-        2. Always translate "task" to English.
+        1. Multi-lingual Support: Understand English, Hindi, and Hinglish.
+        2. Task Translation: Always translate the "task" field to English for backend consistency.
         3. Time Precision:
-           - Reference User Local Time: ${currentTimeStr} (${userTimezone}).
-           - Current UTC: ${now.toISOString()}.
-           - Use Reference User Local Time to calculate absolute UTC time for relative expressions.
-           - Return "time" as UTC ISO8601.
-        4. Recurrence: Detect "none", "daily", "weekly", "monthly".
+           - Current UTC: ${now.toISOString()}
+           - User Timezone: ${userTimezone}
+           - User Local Time: ${currentTimeStr}
+           - Use the User Local Time as the reference for relative terms like "tomorrow", "tonight", "next Monday", "in 2 hours".
+           - Return "time" as a full ISO 8601 string in UTC.
+        4. Recurrence: Detect daily, weekly, or monthly patterns. Default to "none".
 
         INTENTS:
-        - CREATE: Set reminder. Fields: task (string), time (ISO8601 string), recurrence (none|daily|weekly|monthly).
-        - LIST: Show reminders.
-        - DONE: Mark task done. Fields: query (string).
-        - TIMEZONE: Update location. Fields: timezone (e.g., "Europe/London").
-        - BILLING: Check status/subscription.
-        - ERASE: Delete all personal data.
-        - HELP: Instructions.
-        - UNKNOWN: Fallback.
+        - CREATE: User wants a reminder. Requires "task" and "time".
+        - LIST: User wants to see pending tasks.
+        - DONE: User wants to complete a task. Use "query" for the task name to search.
+        - TIMEZONE: User mentions location/timezone (e.g., "I'm in Delhi").
+        - BILLING: Questions about payment or subscription.
+        - ERASE: Request to delete all data.
+        - HELP: Request for instructions.
+        - UNKNOWN: Fallback if message is unrelated.
 
-        OUTPUT: Return strict JSON only.`,
+        OUTPUT FORMAT:
+        Return ONLY a valid JSON object:
+        {
+          "intent": "CREATE" | "LIST" | "DONE" | "HELP" | "TIMEZONE" | "BILLING" | "ERASE" | "UNKNOWN",
+          "task": "Clean English description",
+          "time": "ISO8601_UTC_STRING",
+          "recurrence": "none" | "daily" | "weekly" | "monthly",
+          "query": "search query for completion",
+          "timezone": "IANA_Timezone_String"
+        }
+
+        EXAMPLES:
+        - "mummy ko dawai dena hai roz subah 8 baje" -> {"intent": "CREATE", "task": "Give medicine to mother", "time": "2024-01-15T02:30:00Z", "recurrence": "daily"}
+        - "mark call mom as done" -> {"intent": "DONE", "query": "call mom"}
+        - "i am in london" -> {"intent": "TIMEZONE", "timezone": "Europe/London"}`,
         responseMimeType: "application/json",
         temperature: 0,
       }
@@ -156,10 +171,20 @@ export const processMessageWithAI = async (message: string, userTimezone: string
     }
     const parsed = JSON.parse(text) as AIResponse;
 
-    // Validation
+    // Strict Validation for 100% Accuracy
     if (parsed.intent === 'CREATE') {
-      if (!parsed.task || !parsed.time) return { intent: 'UNKNOWN' };
-      if (isNaN(Date.parse(parsed.time))) return { intent: 'UNKNOWN' };
+      if (!parsed.task || !parsed.time) {
+        console.warn("Gemini: CREATE intent missing task or time. Returning UNKNOWN.");
+        return { intent: 'UNKNOWN' };
+      }
+      if (isNaN(Date.parse(parsed.time))) {
+        console.warn("Gemini: Invalid date format. Returning UNKNOWN.");
+        return { intent: 'UNKNOWN' };
+      }
+    }
+
+    if (parsed.intent === 'DONE' && !parsed.query) {
+      parsed.query = message.replace(/done|complete|finish|mark/gi, '').trim();
     }
     
     return parsed;

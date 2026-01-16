@@ -189,6 +189,39 @@ export const db = {
     }
   },
 
+  async markReminderDoneByQuery(userId: string, query: string): Promise<boolean> {
+    try {
+      // Find the best match for the task
+      const reminder = await prisma.reminder.findFirst({
+        where: {
+          user_id: userId,
+          status: 'pending',
+          task: {
+            contains: query,
+            mode: 'insensitive'
+          }
+        },
+        orderBy: {
+          scheduled_at: 'asc'
+        }
+      });
+
+      if (!reminder) return false;
+
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: {
+          status: 'done',
+          done_at: new Date()
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('Error marking specific reminder as done:', error);
+      return false;
+    }
+  },
+
   getWelcomeMessage(): string {
     return "🚀 *Welcome to RemindAI!*\n\nI'm your intelligent reminder assistant. You can chat with me naturally or send voice notes, and I'll make sure you never miss a task.\n\n*Try saying something like:*\n• \"Remind me to call Mom today at 7pm\"\n• \"Schedule a meeting for tomorrow at 10am\"\n\nType 'HELP' anytime to see what else I can do!";
   },

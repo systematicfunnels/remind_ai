@@ -20,6 +20,7 @@ export interface ParsedIntent {
   time?: string; // ISO 8601 string
   timezone?: string; // For TIMEZONE intent
   recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+  query?: string; // For searching specific tasks to complete
 }
 
 export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | null> => {
@@ -71,7 +72,7 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
           INTENTS:
           - CREATE: User wants a reminder. Requires "task" and "time".
           - LIST: User wants to see pending tasks.
-          - DONE: User wants to complete a task.
+          - DONE: User wants to complete a task. Use "query" for the task name to search.
           - TIMEZONE: User mentions location/timezone (e.g., "I'm in Delhi", "Set my time to PST").
           - BILLING: Questions about payment, subscription, or usage.
           - ERASE: Request to delete all data.
@@ -85,12 +86,14 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
             "task": "Clean English description of the task",
             "time": "ISO8601_UTC_STRING",
             "recurrence": "none" | "daily" | "weekly" | "monthly",
+            "query": "search query for completion",
             "timezone": "IANA_Timezone_String"
           }
 
           EXAMPLES:
           - "remind me to call mom tomorrow at 9pm" -> {"intent": "CREATE", "task": "Call mom", "time": "2024-01-15T15:30:00Z", "recurrence": "none"}
           - "mummy ko dawai dena hai roz subah 8 baje" -> {"intent": "CREATE", "task": "Give medicine to mother", "time": "2024-01-15T02:30:00Z", "recurrence": "daily"}
+          - "mark buy milk as done" -> {"intent": "DONE", "query": "buy milk"}
           - "show my tasks" -> {"intent": "LIST"}
           `
         },
@@ -119,6 +122,10 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
         console.warn("OpenAI: Invalid date format. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
+    }
+
+    if (parsed.intent === 'DONE' && !parsed.query) {
+      parsed.query = message.replace(/done|complete|finish|mark/gi, '').trim();
     }
 
     return parsed;
