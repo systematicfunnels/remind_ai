@@ -1,5 +1,5 @@
 {
-  "name": "RemindAI Telegram Orchestrator (Dev Mode)",
+  "name": "RemindAI Telegram (Robust Version)",
   "nodes": [
     {
       "parameters": {
@@ -14,12 +14,7 @@
       "position": [
         200,
         300
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram-creds-id"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -39,7 +34,7 @@
           "parameters": [
             {
               "name": "phoneId",
-              "value": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"id\"].toString()}}"
+              "value": "={{$json.message.from.id.toString()}}"
             },
             {
               "name": "channel",
@@ -49,7 +44,7 @@
         },
         "options": {}
       },
-      "id": "user-ensure-node",
+      "id": "user-ensure",
       "name": "User Ensure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
@@ -63,13 +58,13 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"voice\"] ? true : false}}",
+              "value1": "={{!!$node[\"Telegram Trigger\"].json.message.voice}}",
               "value2": true
             }
           ]
         }
       },
-      "id": "is-voice-node",
+      "id": "is-voice",
       "name": "Is Voice?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
@@ -82,21 +77,16 @@
       "parameters": {
         "resource": "file",
         "operation": "get",
-        "fileId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"voice\"][\"file_id\"]}}"
+        "fileId": "={{$node[\"Telegram Trigger\"].json.message.voice.file_id}}"
       },
-      "id": "get-tg-file",
-      "name": "Get TG Voice",
+      "id": "get-file",
+      "name": "Get Voice File",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
         800,
         200
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram-creds-id"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -124,7 +114,7 @@
         },
         "options": {}
       },
-      "id": "transcribe-node",
+      "id": "transcribe",
       "name": "Transcribe",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
@@ -151,22 +141,22 @@
           "parameters": [
             {
               "name": "message",
-              "value": "={{$node[\"Is Voice?\"].context[\"outputIndex\"] === 0 ? $node[\"Transcribe\"].json[\"text\"] : $node[\"Telegram Trigger\"].json[\"message\"][\"text\"]}}"
+              "value": "={{$node[\"Transcribe\"] ? $node[\"Transcribe\"].json.text : $node[\"Telegram Trigger\"].json.message.text}}"
             },
             {
               "name": "timezone",
-              "value": "={{$node[\"User Ensure\"].json[\"user\"][\"timezone\"]}}"
+              "value": "={{$node[\"User Ensure\"].json.user.timezone}}"
             }
           ]
         },
         "options": {}
       },
-      "id": "parse-node",
+      "id": "parse",
       "name": "LLM Parse",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1200,
+        1250,
         300
       ]
     },
@@ -188,60 +178,55 @@
           "parameters": [
             {
               "name": "userId",
-              "value": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"id\"].toString()}}"
+              "value": "={{$node[\"Telegram Trigger\"].json.message.from.id.toString()}}"
             },
             {
               "name": "intent",
-              "value": "={{$node[\"LLM Parse\"].json[\"intent\"]}}"
+              "value": "={{$json.intent}}"
             },
             {
               "name": "task",
-              "value": "={{$node[\"LLM Parse\"].json[\"task\"]}}"
+              "value": "={{$json.task}}"
             },
             {
               "name": "time",
-              "value": "={{$node[\"LLM Parse\"].json[\"time\"]}}"
+              "value": "={{$json.time}}"
             },
             {
               "name": "recurrence",
-              "value": "={{$node[\"LLM Parse\"].json[\"recurrence\"]}}"
+              "value": "={{$json.recurrence}}"
             },
             {
               "name": "query",
-              "value": "={{$node[\"LLM Parse\"].json[\"query\"]}}"
+              "value": "={{$json.query}}"
             }
           ]
         },
         "options": {}
       },
-      "id": "action-node",
+      "id": "action",
       "name": "Backend Action",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1400,
+        1450,
         300
       ]
     },
     {
       "parameters": {
-        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
-        "text": "={{$node[\"Backend Action\"].json[\"message\"]}}",
+        "chatId": "={{$node[\"Telegram Trigger\"].json.message.chat.id}}",
+        "text": "={{$json.message}}",
         "additionalFields": {}
       },
-      "id": "telegram-reply-node",
+      "id": "reply",
       "name": "Telegram Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
       "position": [
-        1600,
+        1650,
         300
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram-creds-id"
-        }
-      }
+      ]
     }
   ],
   "connections": {
@@ -260,69 +245,69 @@
       "main": [
         [
           {
-            "node": "Is Voice?",
+            "node": "is-voice",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Is Voice?": {
+    "is-voice": {
       "main": [
         [
           {
-            "node": "Get TG Voice",
+            "node": "get-file",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "parse-node",
+            "node": "parse",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get TG Voice": {
+    "get-file": {
       "main": [
         [
           {
-            "node": "transcribe-node",
+            "node": "transcribe",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "transcribe-node": {
+    "transcribe": {
       "main": [
         [
           {
-            "node": "parse-node",
+            "node": "parse",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "parse-node": {
+    "parse": {
       "main": [
         [
           {
-            "node": "action-node",
+            "node": "action",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "action-node": {
+    "action": {
       "main": [
         [
           {
-            "node": "telegram-reply-node",
+            "node": "reply",
             "type": "main",
             "index": 0
           }
