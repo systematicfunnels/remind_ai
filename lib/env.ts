@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
-  UPSTASH_REDIS_URL: z.string().url(),
+  UPSTASH_REDIS_URL: z.string().url().optional(),
   ADMIN_SECRET: z.string().min(8),
   API_SECRET: z.string().min(8),
   USER_SESSION_SECRET: z.string().optional(),
