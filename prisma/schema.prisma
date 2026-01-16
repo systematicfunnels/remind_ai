@@ -39,6 +39,7 @@ model User {
   is_blocked     Boolean?   @default(false)
   reminder_count Int?       @default(0)
   timezone       String?    @default("UTC")
+  bot_name       String?    @default("My Bot")
   last_active_at DateTime?  @default(now()) @db.Timestamp(6)
   payment_id     String?
   created_at     DateTime?  @default(now()) @db.Timestamp(6)

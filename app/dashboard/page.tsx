@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import RazorpayButton from '@/components/payment/RazorpayButton';
+import BotNameForm from '@/components/dashboard/BotNameForm';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -78,6 +79,20 @@ export default async function DashboardPage() {
             {/* Platform Shortcuts */}
             <div className="space-y-4">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-6">Open your bot</h3>
+              
+              <div className="p-6 bg-indigo-600/10 border border-indigo-500/20 rounded-[2rem] mb-6">
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Active Bot</span>
+                <p className="text-xl font-black text-white uppercase italic tracking-tight mb-4">{(user as any).bot_name || 'My Bot'}</p>
+                <a 
+                  href={(user as any).channel === 'telegram' ? (process.env.NEXT_PUBLIC_TELEGRAM_LINK || "https://t.me/heybirdy_bot") : (process.env.NEXT_PUBLIC_WHATSAPP_LINK || `https://wa.me/${process.env.TWILIO_WHATSAPP_NUMBER}`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20 group"
+                >
+                  Go to App <ExternalLink size={18} className="group-hover:translate-x-1 transition-transform" />
+                </a>
+              </div>
+
               <a 
                 href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || `https://wa.me/${process.env.TWILIO_WHATSAPP_NUMBER}`} 
                 target="_blank"
@@ -117,6 +132,22 @@ export default async function DashboardPage() {
                 </div>
                 <ExternalLink size={20} className="text-sky-500/40 group-hover:text-sky-500 transition-colors" />
               </a>
+
+              <div 
+                className="flex items-center justify-between p-6 bg-pink-500/10 border border-pink-500/20 rounded-3xl opacity-50 cursor-not-allowed group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-pink-500 rounded-2xl text-white">
+                    <Smartphone size={24} />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-black text-white uppercase tracking-widest">Instagram</span>
+                    <span className="text-[10px] font-bold text-pink-400/80 uppercase tracking-tighter">
+                      Coming Soon
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -124,7 +155,7 @@ export default async function DashboardPage() {
           <div className="col-span-12 lg:col-span-8">
             <div className="bg-slate-900/50 border border-slate-800 rounded-[3rem] p-8 md:p-12 min-h-[600px] flex flex-col">
               <div className="flex items-center justify-between mb-12">
-                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">Your Reminders</h2>
+                <BotNameForm initialName={(user as any).bot_name || 'My Bot'} />
                 <div className="p-2 bg-slate-950/50 border border-slate-800 rounded-xl">
                    <Clock size={20} className="text-indigo-400" />
                 </div>

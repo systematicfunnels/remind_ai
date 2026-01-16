@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Zap, Smartphone, ArrowRight, Loader2, MessageSquare, Send, Mail, Lock } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Zap, Smartphone, ArrowRight, Loader2, MessageSquare, Send, Mail, Lock, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const initialPlan = searchParams.get('plan');
+  const initialPlatform = searchParams.get('platform') as 'whatsapp' | 'telegram' | 'instagram' | null;
+  
   const [step, setStep] = useState<'phone' | 'otp' | 'email'>('phone');
-  const [authMode, setAuthMode] = useState<'phone' | 'email'>('phone');
+  const [authMode, setAuthMode] = useState<'phone' | 'email'>(initialPlan ? 'email' : 'phone');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignup, setIsSignup] = useState(false);
+  const [isSignup, setIsSignup] = useState(!!initialPlan);
   const [phoneId, setPhoneId] = useState('');
-  const [channel, setChannel] = useState<'whatsapp' | 'telegram'>('whatsapp');
+  const [channel, setChannel] = useState<'whatsapp' | 'telegram'>(initialPlatform === 'telegram' ? 'telegram' : 'whatsapp');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -110,6 +114,22 @@ export default function LoginPage() {
         </Link>
 
         <div className="bg-slate-900/50 border border-slate-800 p-8 md:p-12 rounded-[2.5rem] backdrop-blur-xl shadow-2xl">
+          {initialPlan && (
+            <div className="mb-6 flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full w-fit">
+              <CheckCircle2 size={12} className="text-indigo-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                Selected Plan: {initialPlan}
+              </span>
+            </div>
+          )}
+          {initialPlatform && (
+            <div className="mb-6 flex items-center gap-2 px-4 py-2 bg-slate-500/10 border border-slate-500/20 rounded-full w-fit">
+              <Smartphone size={12} className="text-slate-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Platform: {initialPlatform}
+              </span>
+            </div>
+          )}
           <h1 className="text-3xl font-black text-white italic uppercase tracking-tight mb-2">
             {step === 'otp' ? 'Check your Bot' : (isSignup ? 'Create Account' : 'Welcome Back')}
           </h1>
