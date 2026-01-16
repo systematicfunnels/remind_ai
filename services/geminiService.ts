@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Intent, RecurrenceRule, UnifiedAIResponse as AIResponse } from './aiService';
+import { logger } from '@/lib/logger';
 
 const getAI = () => {
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
@@ -61,7 +62,7 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
   if (!ai) return null;
 
   try {
-    console.log(`Gemini Voice: Transcribing with mimeType: ${mimeType}`);
+    logger.info(`Gemini Voice: Transcribing with mimeType: ${mimeType}`);
 
     const result = await ai.models.generateContent({
       model: "gemini-flash-latest",
@@ -83,13 +84,13 @@ export const transcribeAudioWithGemini = async (audioBuffer: Buffer, mimeType: s
 
     const transcription = result.text?.trim() || null;
     if (transcription) {
-      console.log("Gemini Voice: Successfully transcribed");
+      logger.info("Gemini Voice: Successfully transcribed");
     } else {
-      console.warn("Gemini Voice: Received empty transcription");
+      logger.warn("Gemini Voice: Received empty transcription");
     }
     return transcription;
   } catch (error) {
-    console.error("Gemini Transcription Error:", error);
+    logger.error("Gemini Transcription Error", { error });
     return null;
   }
 };
@@ -100,7 +101,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
   const currentTimeStr = now.toLocaleString("en-US", { timeZone: userTimezone });
 
   if (!ai) {
-    console.warn("RemindAI: Running in local heuristic mode.");
+    logger.warn("RemindAI: Running in local heuristic mode.");
     return fallbackParse(message);
   }
 
@@ -162,11 +163,11 @@ export const processMessageWithAI = async (message: string, userTimezone: string
     // Strict Validation for 100% Accuracy
     if (parsed.intent === 'CREATE') {
       if (!parsed.task || !parsed.time) {
-        console.warn("Gemini: CREATE intent missing task or time. Returning UNKNOWN.");
+        logger.warn("Gemini: CREATE intent missing task or time. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
       if (isNaN(Date.parse(parsed.time))) {
-        console.warn("Gemini: Invalid date format. Returning UNKNOWN.");
+        logger.warn("Gemini: Invalid date format. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
     }
@@ -177,7 +178,7 @@ export const processMessageWithAI = async (message: string, userTimezone: string
     
     return parsed;
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    logger.error("Gemini API Error", { error });
     return { intent: 'UNKNOWN' };
   }
 };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { scheduleReminder } from '@/lib/queue';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, reminder });
   } catch (error) {
-    console.error('API Create Reminder Error:', error);
+    logger.error('API Create Reminder Error', { error });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

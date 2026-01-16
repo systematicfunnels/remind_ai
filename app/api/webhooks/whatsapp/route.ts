@@ -4,6 +4,8 @@ import { scheduleReminder } from '@/lib/queue';
 import { unifiedParseIntent } from '@/services/aiService';
 import { unifiedTranscribe } from '@/services/voiceService';
 import twilio from 'twilio';
+import { rateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,9 @@ const twilioClient = (process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && proces
   : null;
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await rateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const formData = await req.formData();
   
   // Security: Validate Twilio Signature
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
   // 1. Get or Create User
   let user = await db.getUserByPhone(from);
   if (!user) {
-    user = await db.createUser(from, 'whatsapp');
+    user = await db.createUser({ phoneId: from, channel: 'whatsapp' });
     await sendWhatsAppMessage(from, db.getWelcomeMessage());
     return NextResponse.json({ success: true });
   }
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
     } catch (error) {
-      console.error('WhatsApp voice handling error:', error);
+      logger.error('WhatsApp voice handling error', { error });
       await sendWhatsAppMessage(from, "Error processing voice message.");
       return NextResponse.json({ success: true });
     }
@@ -179,7 +184,7 @@ export async function POST(req: NextRequest) {
 
 async function sendWhatsAppMessage(to: string, message: string) {
   if (!twilioClient) {
-    console.error('Twilio client not initialized');
+    logger.error('Twilio client not initialized');
     return;
   }
   try {
@@ -189,6 +194,6 @@ async function sendWhatsAppMessage(to: string, message: string) {
       body: message,
     });
   } catch (error) {
-    console.error('Twilio Error:', error);
+    logger.error('Twilio Error', { error });
   }
 }

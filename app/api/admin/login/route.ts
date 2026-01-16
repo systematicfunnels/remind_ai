@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const adminSecret = process.env.ADMIN_SECRET;
 
     if (!adminSecret) {
-      console.error('CRITICAL: ADMIN_SECRET is not configured in environment variables');
+      logger.error('CRITICAL: ADMIN_SECRET is not configured in environment variables');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
@@ -42,13 +43,14 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({ success: true });
       
-      // Set authorized session cookie (Base64 encoded secret for security)
-      response.cookies.set('admin_session', Buffer.from(adminSecret).toString('base64'), {
+      // Set authorized session cookie
+      const sessionValue = Buffer.from(`${adminSecret}-session`).toString('base64');
+      response.cookies.set('admin_session', sessionValue, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict', // More secure than 'lax'
+        sameSite: 'strict',
         path: '/',
-        maxAge: 60 * 60 * 24, // Reduced to 1 day for security
+        maxAge: 60 * 60 * 24, // 1 day
       });
 
       return response;
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid security key' }, { status: 401 });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

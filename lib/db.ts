@@ -1,5 +1,16 @@
 import { prisma } from '@/lib/prisma';
-import { User as PrismaUser, Reminder as PrismaReminder } from '@prisma/client';
+import { User as PrismaUser, Reminder as PrismaReminder, RecurrenceRule } from '@prisma/client';
+import { logger } from '@/lib/logger';
+
+// The config property already exists on PrismaClient, but TypeScript isn't recognizing it properly
+// This is likely due to the Prisma client generation. The actual runtime works fine.
+// We'll use type assertion to access the config property
+const prismaWithConfig = prisma as unknown as {
+  config: {
+    findUnique: (args: { where: { key: string } }) => Promise<{ value: string } | null>;
+    upsert: (args: { where: { key: string }, create: { key: string, value: string }, update: { value: string } }) => Promise<{ value: string }>;
+  };
+};
 
 export type User = PrismaUser;
 export type Reminder = PrismaReminder;
@@ -18,22 +29,53 @@ export const db = {
           prisma.user.update({
             where: { id: user.id },
             data: { last_active_at: new Date() }
-          }).catch(err => console.error('Throttled active update failed:', err));
+          }).catch(err => logger.error('Throttled active update failed', { error: err }));
         }
       }
 
       return user;
     } catch (error) {
-      console.error('Error fetching user with Prisma:', error);
+      logger.error('Error fetching user by phone', { error, phoneId });
       return null;
     }
   },
 
-  async createUser(phoneId: string, channel: string = 'unknown', role: 'user' | 'admin' = 'user'): Promise<User | null> {
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      return await prisma.user.findUnique({
+        where: { email },
+      });
+    } catch (error) {
+      logger.error('Error fetching user by email', { error, email });
+      return null;
+    }
+  },
+
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      return await prisma.user.findUnique({
+        where: { id: userId },
+      });
+    } catch (error) {
+      logger.error('Error fetching user by ID', { error, userId });
+      return null;
+    }
+  },
+
+  async createUser(params: {
+    phoneId?: string;
+    email?: string;
+    password?: string;
+    channel?: string;
+    role?: 'user' | 'admin';
+  }): Promise<User | null> {
+    const { phoneId, email, password, channel = 'unknown', role = 'user' } = params;
     try {
       return await prisma.user.create({
         data: {
           phone_id: phoneId,
+          email,
+          password,
           channel,
           role,
           sub_status: 'trial',
@@ -42,7 +84,7 @@ export const db = {
         },
       });
     } catch (error) {
-      console.error('Error creating user with Prisma:', error);
+      logger.error('Error creating user with Prisma', { error, phoneId, email, channel });
       return null;
     }
   },
@@ -59,7 +101,7 @@ export const db = {
         },
       });
     } catch (error) {
-      console.error('Error incrementing reminder count with Prisma:', error);
+      logger.error('Error incrementing reminder count with Prisma', { error, userId });
     }
   },
 
@@ -71,7 +113,7 @@ export const db = {
         data: { is_blocked: blocked }
       });
     } catch (error) {
-      console.error('Error blocking user:', error);
+      logger.error('Error blocking user', { error, userId, blocked });
       return null;
     }
   },
@@ -83,7 +125,7 @@ export const db = {
         data: { reminder_count: 0 }
       });
     } catch (error) {
-      console.error('Error resetting user usage:', error);
+      logger.error('Error resetting user usage', { error, userId });
       return null;
     }
   },
@@ -95,7 +137,7 @@ export const db = {
         data: { status: 'cancelled' }
       });
     } catch (error) {
-      console.error('Error cancelling reminder:', error);
+      logger.error('Error cancelling reminder', { error, reminderId });
       return null;
     }
   },
@@ -122,12 +164,12 @@ export const db = {
       });
       return true;
     } catch (error) {
-      console.error('Error cancelling last reminder:', error);
+      logger.error('Error cancelling last reminder', { error, userId });
       return false;
     }
   },
 
-  async createReminder(userId: string, task: string, scheduledAt: string, recurrence: any = 'none'): Promise<Reminder | null> {
+  async createReminder(userId: string, task: string, scheduledAt: string, recurrence: RecurrenceRule = 'none'): Promise<Reminder | null> {
     try {
       return await prisma.reminder.create({
         data: {
@@ -139,7 +181,7 @@ export const db = {
         },
       });
     } catch (error) {
-      console.error('Error creating reminder with Prisma:', error);
+      logger.error('Error creating reminder with Prisma', { error, userId, task });
       return null;
     }
   },
@@ -157,7 +199,7 @@ export const db = {
         take: 10,
       });
     } catch (error) {
-      console.error('Error fetching pending reminders:', error);
+      logger.error('Error fetching pending reminders', { error, userId });
       return [];
     }
   },
@@ -191,7 +233,7 @@ export const db = {
 
       return true;
     } catch (error) {
-      console.error('Error marking reminder as done:', error);
+      logger.error('Error marking reminder as done', { error, userId });
       return false;
     }
   },
@@ -230,12 +272,12 @@ export const db = {
 
       return true;
     } catch (error) {
-      console.error('Error marking specific reminder as done:', error);
+      logger.error('Error marking specific reminder as done', { error, userId, query });
       return false;
     }
   },
 
-  async handleRecurrence(reminder: any) {
+  async handleRecurrence(reminder: Reminder) {
     try {
       const { scheduleReminder } = await import('./queue');
       const nextScheduledAt = new Date(reminder.scheduled_at);
@@ -260,10 +302,10 @@ export const db = {
         }
       });
 
-      await scheduleReminder(nextReminder.id, reminder.user_id, reminder.task, nextScheduledAt.toISOString());
-      console.log(`Rescheduled recurring reminder ${reminder.id} -> ${nextReminder.id} for ${nextScheduledAt.toISOString()}`);
+      await scheduleReminder(nextReminder.id, reminder.user_id || '', reminder.task, nextScheduledAt.toISOString());
+      logger.info(`Rescheduled recurring reminder ${reminder.id} -> ${nextReminder.id} for ${nextScheduledAt.toISOString()}`);
     } catch (error) {
-      console.error('Failed to handle recurrence in db.ts:', error);
+      logger.error('Failed to handle recurrence in db.ts', { error, reminderId: reminder.id });
     }
   },
 
@@ -282,7 +324,7 @@ export const db = {
         data: { timezone }
       });
     } catch (error) {
-      console.error('Error updating timezone:', error);
+      logger.error('Error updating timezone', { error, userId, timezone });
       return null;
     }
   },
@@ -304,7 +346,71 @@ export const db = {
         }
       });
     } catch (error) {
-      console.error('Error erasing user data:', error);
+      logger.error('Error erasing user data', { error, userId });
+      return null;
+    }
+  },
+
+  async createVerificationCode(phoneId: string, code: string): Promise<void> {
+    try {
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      await prisma.verificationCode.create({
+        data: {
+          phone_id: phoneId,
+          code,
+          expires_at: expiresAt
+        }
+      });
+    } catch (error) {
+      logger.error('Error creating verification code', { error, phoneId });
+      throw error;
+    }
+  },
+
+  async verifyCode(phoneId: string, code: string): Promise<boolean> {
+    try {
+      const vc = await prisma.verificationCode.findFirst({
+        where: {
+          phone_id: phoneId,
+          code,
+          expires_at: { gt: new Date() }
+        },
+        orderBy: { created_at: 'desc' }
+      });
+
+      if (vc) {
+        // Delete used code
+        await prisma.verificationCode.delete({ where: { id: vc.id } });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Error verifying code', { error, phoneId });
+      return false;
+    }
+  },
+
+  async getConfig(key: string, defaultValue: string = ''): Promise<string> {
+    try {
+      const config = await prismaWithConfig.config.findUnique({
+        where: { key }
+      });
+      return config ? config.value : defaultValue;
+    } catch (error) {
+      logger.error(`Error getting config ${key}`, { error });
+      return defaultValue;
+    }
+  },
+
+  async setConfig(key: string, value: string) {
+    try {
+      return await prismaWithConfig.config.upsert({
+        where: { key },
+        update: { value },
+        create: { key, value }
+      });
+    } catch (error) {
+      logger.error(`Error setting config ${key}`, { error });
       return null;
     }
   }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unifiedTranscribe } from '@/services/voiceService';
 import { isValidApiRequest } from '@/lib/auth';
+import { rateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +13,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await rateLimit(req);
+    if (rateLimitResponse) return rateLimitResponse;
+
     if (!isValidApiRequest(req)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -39,7 +44,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ text });
   } catch (error) {
-    console.error('API Transcribe Error:', error);
+    logger.error('API Transcribe Error', { error });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

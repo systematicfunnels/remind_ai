@@ -1,5 +1,6 @@
 import { transcribeAudio as transcribeWithOpenAI } from './openaiService';
 import { transcribeAudioWithGemini } from './geminiService';
+import { logger } from '@/lib/logger';
 
 /**
  * Unified voice transcription service with fallback:
@@ -25,22 +26,22 @@ export const unifiedTranscribe = async (audioBuffer: Buffer, mimeType: string = 
   try {
     const whisperText = await transcribeWithOpenAI(audioBuffer);
     if (whisperText) {
-      console.log("Voice: Transcribed using OpenAI Whisper");
+      logger.info("Voice: Transcribed using OpenAI Whisper");
       return whisperText;
     }
   } catch (error) {
-    console.warn("Voice: OpenAI Whisper failed, falling back to Gemini");
+    logger.warn("Voice: OpenAI Whisper failed, falling back to Gemini");
   }
 
   // 2. Try Gemini 1.5 Flash
   try {
     const geminiText = await transcribeAudioWithGemini(audioBuffer, normalizedMimeType);
     if (geminiText) {
-      console.log("Voice: Transcribed using Google Gemini");
+      logger.info("Voice: Transcribed using Google Gemini");
       return geminiText;
     }
   } catch (error) {
-    console.error("Voice: Gemini transcription failed", error);
+    logger.error("Voice: Gemini transcription failed", { error });
   }
 
   return null;

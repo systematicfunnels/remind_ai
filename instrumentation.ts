@@ -1,7 +1,8 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { startWorker } = await import('./lib/queue');
+    const { logger } = await import('./lib/logger');
     startWorker();
-    console.log('BullMQ worker started successfully.');
+    logger.info('BullMQ worker started successfully.');
   }
 }

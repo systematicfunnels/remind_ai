@@ -64,7 +64,7 @@ export async function getAllUsers() {
 
 export async function getAllReminders(status?: string) {
   return prisma.reminder.findMany({
-    where: status && status !== 'all' ? { status } : {},
+    where: status && status !== 'all' ? { status: status as any } : {},
     include: {
       user: {
         select: {
@@ -98,6 +98,34 @@ export async function cancelReminder(reminderId: string) {
     data: { status: 'cancelled' },
   });
   revalidatePath('/admin/reminders');
+}
+
+export async function broadcastMessage(message: string, target: 'all' | 'paid' | 'free') {
+  const where: any = {};
+  if (target === 'paid') where.sub_status = 'paid';
+  if (target === 'free') where.sub_status = 'trial';
+
+  const users = await prisma.user.findMany({
+    where,
+    select: { phone_id: true, channel: true }
+  });
+
+  const { sendDirectMessage } = await import('./queue');
+
+  let successCount = 0;
+  let failureCount = 0;
+
+  // Use Promise.allSettled to broadcast in parallel
+  await Promise.allSettled(users.map(async (user) => {
+    try {
+      await sendDirectMessage(user.phone_id, user.channel || 'telegram', message);
+      successCount++;
+    } catch (error) {
+      failureCount++;
+    }
+  }));
+
+  return { successCount, failureCount };
 }
 
 export async function retryReminder(reminderId: string) {

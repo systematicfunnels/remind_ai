@@ -1,0 +1,947 @@
+
+{
+  "name": "WhatsApp Telegram Personal Reminder AI Assistant MVP",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d9045bfe-002f-4e27-b1df-da797beb048d",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "bae887d3-ad9c-4b24-a11a-b1dbea40ea49"
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "9a7b07aa-0c6a-4cb8-879b-60b54e40c23b",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ],
+      "webhookId": "81aa8013-d781-486e-85a8-83573c118146"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "userId",
+              "value": "={{ $json.from }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "platform",
+              "value": "={{ $json.platform || 'whatsapp' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "messageText",
+              "value": "={{ $json.body || $json.message?.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "hasVoice",
+              "value": "={{ $json.mediaUrl ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-5",
+              "name": "mediaUrl",
+              "value": "={{ $json.mediaUrl || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "chatId",
+              "value": "={{ $json.chatId || $json.from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8bdc086b-5a82-4105-ba96-d194c88b809a",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.hasVoice }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8ce2f307-095d-46e2-92fa-a075f4721c9b",
+      "name": "Check if Voice Note",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "id": "0ef4d8d3-a09d-41e4-b9f5-9f40947c1c1b",
+      "name": "Extract Voice Note Audio",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        24
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "en"
+        }
+      },
+      "id": "a8601ce6-1735-4125-81bd-fa763e4bdb95",
+      "name": "Transcribe Voice to Text",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        24
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "irIP0LaxZ3qqqRMK",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "messageText",
+              "value": "={{ $('Transcribe Voice to Text').item.json.text || $('Workflow Configuration').item.json.messageText }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "userId",
+              "value": "={{ $('Workflow Configuration').item.json.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "platform",
+              "value": "={{ $('Workflow Configuration').item.json.platform }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "chatId",
+              "value": "={{ $('Workflow Configuration').item.json.chatId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c6d366d6-28f1-4fe6-9d66-1bb86919d39a",
+      "name": "Normalize Message Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a personal reminder AI assistant for WhatsApp and Telegram. Your role is to help users create, manage, and complete reminders.\n\nKey capabilities:\n- Create one-time and recurring reminders from natural language (\"tomorrow at 3pm\", \"every Monday at 9am\", \"in 2 hours\")\n- List all active reminders for the user\n- Mark reminders as done when user confirms completion\n- Answer basic questions about your functionality\n\nTimezone: Asia/Kolkata (IST)\n\nUser context:\n- User ID: {{ $json.userId }}\n- Platform: {{ $json.platform }}\n- Message: {{ $json.messageText }}\n\nInstructions:\n1. Use the Parse DateTime Tool to convert natural language time expressions to ISO datetime\n2. Use Create Reminder Tool to save reminders to the database\n3. Use List Reminders Tool to show user their active reminders\n4. Use Mark Done Tool when user says \"done\" or confirms completion\n5. Use the appropriate response tool (WhatsApp or Telegram) based on platform to send messages back to the user\n6. Be friendly, concise, and helpful\n7. Always confirm actions taken (reminder created, marked done, etc.)"
+        }
+      },
+      "id": "0714d178-87ea-4064-845f-7b77422dfed0",
+      "name": "Reminder AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1784,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "bd24d250-6c02-46a6-bfbe-100e81594e77",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "irIP0LaxZ3qqqRMK",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $json.userId }}",
+        "contextWindowLength": 10
+      },
+      "id": "408635ca-34ff-444d-b069-bf1201f05df5",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1472,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"action\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"enum\": [\"create_reminder\", \"list_reminders\", \"mark_done\", \"faq\"]\n\t\t},\n\t\t\"task\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"datetime\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"recurrence\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"response\": {\n\t\t\t\"type\": \"string\"\n\t\t}\n\t}\n}"
+      },
+      "id": "58b65666-651a-4fc6-ae1d-926f7680c29b",
+      "name": "Parse Reminder Structure",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Creates a new reminder for the user. Requires task description, datetime (ISO format), optional recurrence pattern, and userId.",
+        "jsCode": "const task = $input.item.json.task;\nconst datetime = $input.item.json.datetime;\nconst recurrence = $input.item.json.recurrence || 'none';\nconst userId = $input.item.json.userId;\nconst platform = $input.item.json.platform;\n\n// Store in Data Table (reminders table)\nconst reminder = {\n  id: Date.now().toString(),\n  userId: userId,\n  platform: platform,\n  task: task,\n  datetime: datetime,\n  recurrence: recurrence,\n  status: 'active',\n  createdAt: new Date().toISOString()\n};\n\n// This would connect to Data Table node to insert\nreturn { json: { success: true, reminder: reminder, message: `✅ Reminder created: \"${task}\" for ${new Date(datetime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}` } };"
+      },
+      "id": "51d316ee-6c28-49f1-9001-458e049eff1d",
+      "name": "Create Reminder Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Lists all active reminders for the user. Requires userId.",
+        "jsCode": "const userId = $input.item.json.userId;\n\n// This would query Data Table for active reminders\n// Mock response for structure\nconst reminders = [\n  // Would be fetched from database\n];\n\nif (reminders.length === 0) {\n  return { json: { success: true, message: '📋 You have no active reminders.' } };\n}\n\nlet message = '📋 Your active reminders:\\n\\n';\nreminders.forEach((r, i) => {\n  const dt = new Date(r.datetime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });\n  message += `${i+1}. ${r.task}\\n   ⏰ ${dt}\\n   🔁 ${r.recurrence}\\n\\n`;\n});\n\nreturn { json: { success: true, message: message } };"
+      },
+      "id": "ad0ea03a-4591-41cb-950c-35c276967168",
+      "name": "List Reminders Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1728,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Marks a reminder as completed. Requires reminderId and userId.",
+        "jsCode": "const reminderId = $input.item.json.reminderId;\nconst userId = $input.item.json.userId;\n\n// Update reminder status in Data Table\nconst result = {\n  success: true,\n  message: '✅ Reminder marked as done!'\n};\n\nreturn { json: result };"
+      },
+      "id": "69d14c1a-8a79-4109-8264-4c0f6499826e",
+      "name": "Mark Done Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1856,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Converts natural language time expressions to ISO datetime format. Handles \"tomorrow\", \"in 2 hours\", \"next Monday at 3pm\", etc. Timezone: Asia/Kolkata.",
+        "jsCode": "const input = $input.item.json.timeExpression.toLowerCase();\nconst now = new Date();\n\n// Simple parser for common expressions\nlet targetDate = new Date();\n\nif (input.includes('tomorrow')) {\n  targetDate.setDate(targetDate.getDate() + 1);\n  // Extract time if specified\n  const timeMatch = input.match(/(\\d{1,2})\\s*(am|pm|:\\d{2})?/);\n  if (timeMatch) {\n    let hour = parseInt(timeMatch[1]);\n    if (input.includes('pm') && hour < 12) hour += 12;\n    targetDate.setHours(hour, 0, 0, 0);\n  } else {\n    targetDate.setHours(9, 0, 0, 0); // Default 9 AM\n  }\n} else if (input.includes('day after tomorrow')) {\n  targetDate.setDate(targetDate.getDate() + 2);\n  targetDate.setHours(9, 0, 0, 0);\n} else if (input.match(/in (\\d+) hours?/)) {\n  const hours = parseInt(input.match(/in (\\d+) hours?/)[1]);\n  targetDate.setHours(targetDate.getHours() + hours);\n} else if (input.match(/in (\\d+) minutes?/)) {\n  const mins = parseInt(input.match(/in (\\d+) minutes?/)[1]);\n  targetDate.setMinutes(targetDate.getMinutes() + mins);\n} else if (input.includes('monday') || input.includes('tuesday') || input.includes('wednesday') || input.includes('thursday') || input.includes('friday') || input.includes('saturday') || input.includes('sunday')) {\n  // Handle day of week\n  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const targetDay = days.findIndex(d => input.includes(d));\n  const currentDay = targetDate.getDay();\n  let daysToAdd = targetDay - currentDay;\n  if (daysToAdd <= 0) daysToAdd += 7;\n  targetDate.setDate(targetDate.getDate() + daysToAdd);\n  targetDate.setHours(9, 0, 0, 0);\n}\n\nreturn { json: { datetime: targetDate.toISOString(), parsed: true } };"
+      },
+      "id": "a898386a-80d5-45b0-9512-eced570b4413",
+      "name": "Parse DateTime Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1984,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $fromAI('phoneNumber', 'User phone number from userId', 'string') }}",
+        "textBody": "={{ $fromAI('message', 'The message to send to the user', 'string') }}",
+        "additionalFields": {}
+      },
+      "id": "7acb4e0a-2bc1-47cf-b445-45ac9873ab6b",
+      "name": "WhatsApp Response Tool",
+      "type": "n8n-nodes-base.whatsAppTool",
+      "typeVersion": 1.1,
+      "position": [
+        2112,
+        320
+      ],
+      "webhookId": "9792260f-f3b3-402b-84c1-5b081b62239d"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $fromAI('chatId', 'Telegram chat ID from context', 'string') }}",
+        "text": "={{ $fromAI('message', 'The message to send to the user', 'string') }}",
+        "additionalFields": {}
+      },
+      "id": "120a5b6c-b7b4-4e00-837b-656f121b3ea6",
+      "name": "Telegram Response Tool",
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        2240,
+        320
+      ],
+      "webhookId": "7a895953-925c-419b-8301-7953034d7a8e"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "1c40d9aa-b25e-4347-bbe9-e86dfa41c480",
+      "name": "Check Reminders Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "reminders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "active"
+            },
+            {
+              "keyName": "datetime",
+              "condition": "lte",
+              "keyValue": "={{ $now }}"
+            }
+          ]
+        },
+        "limit": 100
+      },
+      "id": "8c6e6935-243f-460c-b859-04851df87378",
+      "name": "Get Due Reminders",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d59e2f8a-8647-4db4-8021-2ec14bf7f94d",
+      "name": "Check if Reminders Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "139db543-0ed0-45e8-b018-584fd075ba2f",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.userId }}",
+        "textBody": "={{ '⏰ Reminder: ' + $json.task + '. Reply \"done\" when completed.' }}",
+        "additionalFields": {}
+      },
+      "id": "3cb2051f-aad6-4983-8240-bed5a6ad3494",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        424
+      ],
+      "webhookId": "596aeb46-3510-44dc-b6a6-dd8184244521"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ '⏰ Reminder: ' + $json.task + '. Reply \"done\" when completed.' }}",
+        "additionalFields": {}
+      },
+      "id": "181116e3-b4d0-4efc-ace3-0e88e1d233db",
+      "name": "Send Telegram Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        616
+      ],
+      "webhookId": "277effb5-fd34-41ca-8461-87f778f845ec"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "reminders"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "sent",
+            "sentAt": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "f2116209-7505-42f4-b390-d59906a1c6b9",
+      "name": "Update Reminder Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "path": "admin-dashboard",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "ecf76a36-df55-4fb0-a270-a70754678110",
+      "name": "Admin Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        840
+      ],
+      "webhookId": "d0435b37-8043-4e18-8021-c4135850b64c"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "reminders"
+        },
+        "returnAll": true
+      },
+      "id": "97142f50-a07b-44f4-9579-66eb15c9e8be",
+      "name": "Get Admin Stats",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reminders = $input.all();\n\nconst totalReminders = reminders.length;\nconst activeReminders = reminders.filter(r => r.json.status === 'active').length;\nconst completedReminders = reminders.filter(r => r.json.status === 'completed').length;\nconst uniqueUsers = [...new Set(reminders.map(r => r.json.userId))].length;\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Reminder Assistant Admin Dashboard</title>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #f5f5f5; }\n    .card { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    h1 { color: #333; }\n    .stat { display: inline-block; margin: 10px 20px; }\n    .stat-value { font-size: 32px; font-weight: bold; color: #4CAF50; }\n    .stat-label { color: #666; }\n  </style>\n</head>\n<body>\n  <h1>📊 Reminder Assistant Admin Dashboard</h1>\n  <div class=\"card\">\n    <h2>Statistics</h2>\n    <div class=\"stat\">\n      <div class=\"stat-value\">${uniqueUsers}</div>\n      <div class=\"stat-label\">Total Users</div>\n    </div>\n    <div class=\"stat\">\n      <div class=\"stat-value\">${totalReminders}</div>\n      <div class=\"stat-label\">Total Reminders</div>\n    </div>\n    <div class=\"stat\">\n      <div class=\"stat-value\">${activeReminders}</div>\n      <div class=\"stat-label\">Active</div>\n    </div>\n    <div class=\"stat\">\n      <div class=\"stat-value\">${completedReminders}</div>\n      <div class=\"stat-label\">Completed</div>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn { json: { html: html } };"
+      },
+      "id": "36b24b07-2d17-48d3-8b42-8b0e590aebe4",
+      "name": "Format Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "respondToWebhook",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "text/html"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/html",
+        "body": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "f39d7433-7f90-4dff-ab8f-788711dc03bc",
+      "name": "Respond to Admin Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        840
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check if Voice Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Voice Note": {
+      "main": [
+        [
+          {
+            "node": "Extract Voice Note Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalize Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Voice Note Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Voice to Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Voice to Text": {
+      "main": [
+        [
+          {
+            "node": "Normalize Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Message Text": {
+      "main": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reminder Structure": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reminder Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Reminders Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Done Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse DateTime Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Response Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Response Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Reminder AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reminders Every Minute": {
+      "main": [
+        [
+          {
+            "node": "Get Due Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Due Reminders": {
+      "main": [
+        [
+          {
+            "node": "Check if Reminders Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Reminders Found": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder": {
+      "main": [
+        [
+          {
+            "node": "Update Reminder Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Reminder": {
+      "main": [
+        [
+          {
+            "node": "Update Reminder Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Admin Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Admin Stats": {
+      "main": [
+        [
+          {
+            "node": "Format Admin Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Admin Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Admin Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c9728367-3242-45e2-b6a2-c71d05a23f77",
+  "meta": {
+    "instanceId": "6a6b76025f151016106826eb7132776d1372c0e85e6a7a2fe59eb0f44d89b191"
+  },
+  "id": "Gaz2fwGF-8wsgAujGo3gn",
+  "tags": []
+}

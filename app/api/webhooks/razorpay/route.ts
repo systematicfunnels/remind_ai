@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendDirectMessage } from '@/lib/queue';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
           "✅ Payment Successful! Your RemindAI account has been upgraded to Premium. Enjoy unlimited reminders! 🚀"
         );
       } catch (error) {
-        console.error('Error updating sub_status with Prisma:', error);
+        logger.error('Error updating sub_status with Prisma', { error });
       }
     }
   }

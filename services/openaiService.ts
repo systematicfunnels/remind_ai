@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { logger } from '@/lib/logger';
 
 let openaiClient: OpenAI | null = null;
 
@@ -6,7 +7,7 @@ const getOpenAI = () => {
   if (!openaiClient) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.warn("OPENAI_API_KEY is missing. AI features will be disabled.");
+      logger.warn("OPENAI_API_KEY is missing. AI features will be disabled.");
       return null;
     }
     openaiClient = new OpenAI({ apiKey });
@@ -37,7 +38,7 @@ export const transcribeAudio = async (audioBuffer: Buffer): Promise<string | nul
 
     return transcription.text;
   } catch (error) {
-    console.error("OpenAI Transcription Error:", error);
+    logger.error("OpenAI Transcription Error", { error });
     return null;
   }
 };
@@ -114,12 +115,12 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
     // Validation for 100% accuracy
     if (parsed.intent === 'CREATE') {
       if (!parsed.task || !parsed.time) {
-        console.warn("OpenAI: CREATE intent missing task or time. Returning UNKNOWN.");
+        logger.warn("OpenAI: CREATE intent missing task or time. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
       // Ensure time is valid
       if (isNaN(Date.parse(parsed.time))) {
-        console.warn("OpenAI: Invalid date format. Returning UNKNOWN.");
+        logger.warn("OpenAI: Invalid date format. Returning UNKNOWN.");
         return { intent: 'UNKNOWN' };
       }
     }
@@ -130,7 +131,7 @@ export const parseReminderIntent = async (message: string, userTimezone: string 
 
     return parsed;
   } catch (error) {
-    console.error("OpenAI Parsing Error:", error);
+    logger.error("OpenAI Parsing Error", { error });
     return null;
   }
 };

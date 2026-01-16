@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -17,13 +18,16 @@ export function middleware(request: NextRequest) {
     
     // Fail closed if no secret is configured
     if (!adminSecret) {
-      console.error('CRITICAL: ADMIN_SECRET is not configured. Blocking all admin access.');
+      logger.error('CRITICAL: ADMIN_SECRET is not configured. Blocking all admin access.');
       return NextResponse.redirect(new URL('/', request.url));
     }
 
     const cookie = request.cookies.get('admin_session');
-    // Use a simple hash (base64) instead of raw secret for session cookie
-    const isAuthorized = cookie && cookie.value === Buffer.from(adminSecret).toString('base64');
+    
+    // In production, we should use a proper session store, 
+    // but for now we'll use a hashed version of the secret
+    const expectedValue = Buffer.from(`${adminSecret}-session`).toString('base64');
+    const isAuthorized = cookie && cookie.value === expectedValue;
 
     // Redirect authorized users away from login page
     if (path === '/admin/login' && isAuthorized) {
@@ -42,9 +46,30 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Protect /dashboard route
+  if (path.startsWith('/dashboard')) {
+    const cookie = request.cookies.get('user_session');
+    
+    if (!cookie) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    
+    try {
+      const decoded = Buffer.from(cookie.value, 'base64').toString('ascii');
+      const [, secret] = decoded.split('-');
+      const expectedSecret = process.env.USER_SESSION_SECRET || 'remindai-user-secret';
+      
+      if (secret !== expectedSecret) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*'],
+  matcher: ['/admin', '/admin/:path*', '/dashboard', '/dashboard/:path*'],
 };

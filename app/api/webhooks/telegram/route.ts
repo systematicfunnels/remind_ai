@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { scheduleReminder } from '@/lib/queue';
 import { unifiedParseIntent } from '@/services/aiService';
 import { unifiedTranscribe } from '@/services/voiceService';
+import { rateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +12,9 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await rateLimit(req);
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Security: Validate Telegram Secret Token
   const secretToken = req.headers.get('X-Telegram-Bot-Api-Secret-Token');
   if (process.env.NODE_ENV === 'production' && secretToken !== process.env.TELEGRAM_SECRET_TOKEN) {
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
   // 1. Get or Create User
   let user = await db.getUserByPhone(chatId);
   if (!user) {
-    user = await db.createUser(chatId, 'telegram');
+    user = await db.createUser({ phoneId: chatId, channel: 'telegram' });
     await sendTelegramMessage(chatId, db.getWelcomeMessage());
     return NextResponse.json({ success: true });
   }
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
     } catch (error) {
-      console.error('Voice handling error:', error);
+      logger.error('Voice handling error', { error });
       await sendTelegramMessage(chatId, "Error processing voice message.");
       return NextResponse.json({ success: true });
     }
@@ -185,9 +190,9 @@ async function sendTelegramMessage(chatId: string, text: string) {
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('❌ Telegram API Error:', errorData);
+      logger.error('❌ Telegram API Error', { error: errorData });
     }
   } catch (error) {
-    console.error('❌ Fetch Error while sending to Telegram:', error);
+    logger.error('❌ Fetch Error while sending to Telegram', { error });
   }
 }

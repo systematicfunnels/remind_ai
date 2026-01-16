@@ -1,10 +1,11 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import twilio from 'twilio';
+import { logger } from './logger';
 
 const redisUrl = process.env.UPSTASH_REDIS_URL;
 
-const connection = (redisUrl && !redisUrl.includes('your-redis-url'))
+export const connection = (redisUrl && !redisUrl.includes('your-redis-url'))
   ? new IORedis(redisUrl, { 
       maxRetriesPerRequest: null,
       // Upstash Redis usually requires TLS, which IORedis handles with rediss://
@@ -25,7 +26,7 @@ const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
  */
 export async function scheduleReminder(reminderId: string, userId: string, task: string, scheduledAt: string) {
   if (!reminderQueue) {
-    console.warn('Reminder Queue not initialized. Redis URL might be missing.');
+    logger.warn('Reminder Queue not initialized. Redis URL might be missing.');
     return;
   }
 
@@ -40,7 +41,7 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
     });
 
     if (!user?.phone_id) {
-      console.error('User phone_id not found for scheduling');
+      logger.error('User phone_id not found for scheduling', { userId, reminderId });
       return;
     }
 
@@ -60,9 +61,9 @@ export async function scheduleReminder(reminderId: string, userId: string, task:
       }
     });
     
-    console.log(`Successfully scheduled reminder ${reminderId} for ${user.phone_id} at ${scheduledAt}`);
+    logger.info(`Successfully scheduled reminder ${reminderId} for ${user.phone_id} at ${scheduledAt}`);
   } catch (error) {
-    console.error('Failed to schedule reminder in BullMQ:', error);
+    logger.error('Failed to schedule reminder in BullMQ', { error, reminderId, userId });
   }
 }
 
@@ -88,20 +89,20 @@ export async function sendDirectMessage(phoneId: string, platform: string, messa
       });
     }
   } catch (error) {
-    console.error('Failed to send direct message:', error);
+    logger.error('Failed to send direct message', { error, phoneId, platform });
   }
 }
 
 export const startWorker = () => {
   if (!connection) {
-    console.warn('BullMQ Worker: No Redis connection found. Skipping worker start.');
+    logger.warn('BullMQ Worker: No Redis connection found. Skipping worker start.');
     return;
   }
 
   const worker = new Worker('reminder-queue', async (job: Job) => {
     const { phoneId, task, platform, reminderId } = job.data;
 
-    console.log(`Processing reminder: ${task} for ${phoneId}`);
+    logger.info(`Processing reminder: ${task} for ${phoneId}`);
 
     try {
       const { prisma } = await import('./prisma');
@@ -112,7 +113,7 @@ export const startWorker = () => {
       });
 
       if (!reminder || reminder.status !== 'pending') {
-        console.log(`Reminder ${reminderId} is no longer pending (status: ${reminder?.status}). Skipping notification.`);
+        logger.info(`Reminder ${reminderId} is no longer pending (status: ${reminder?.status}). Skipping notification.`);
         return;
       }
 
@@ -126,7 +127,7 @@ export const startWorker = () => {
             body: messageText,
           });
         } else {
-          console.error('Twilio client not initialized');
+          logger.error('Twilio client not initialized');
         }
       } else {
         // Default to Telegram
@@ -157,18 +158,18 @@ export const startWorker = () => {
       }
  
     } catch (error) {
-      console.error(`Failed to process job ${job.id}:`, error);
+      logger.error(`Failed to process job ${job.id}`, { error, reminderId });
       throw error; // Let BullMQ handle retry
     }
 
   }, { connection });
 
   worker.on('completed', job => {
-    console.log(`${job.id} has completed!`);
+    logger.info(`${job.id} has completed!`);
   });
 
   worker.on('failed', async (job, err) => {
-    console.error(`${job?.id} has failed with ${err.message}`);
+    logger.error(`${job?.id} has failed with ${err.message}`, { error: err });
     
     if (job?.data?.reminderId) {
       try {
@@ -181,7 +182,7 @@ export const startWorker = () => {
           }
         });
       } catch (dbErr) {
-        console.error('Failed to update reminder status on job failure:', dbErr);
+        logger.error('Failed to update reminder status on job failure', { error: dbErr });
       }
     }
   });

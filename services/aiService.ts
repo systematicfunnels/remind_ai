@@ -1,6 +1,7 @@
 import { parseReminderIntent as parseWithOpenAI } from './openaiService';
 import { processMessageWithAI as parseWithGemini } from './geminiService';
 import { parseWithOpenRouter } from './openRouterService';
+import { logger } from '@/lib/logger';
 
 export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
 
@@ -31,31 +32,27 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallbackValue: T): Prom
  * 2. Gemini (1.5 Flash)
  * 3. Local Heuristic Parser
  */
-export const unifiedParseIntent = async (message: string, userTimezone: string = 'UTC'): Promise<UnifiedAIResponse> => {
+export const unifiedParseIntent = async (message: string, userTimezone: string = 'Asia/Kolkata'): Promise<UnifiedAIResponse> => {
   const lowerMsg = message.toLowerCase().trim();
 
   // Quick Command Heuristics (Save API calls for simple commands)
-  if (lowerMsg === 'list' || lowerMsg === '/list') {
-    return { intent: 'LIST' };
-  }
-  if (lowerMsg === 'done' || lowerMsg === '/done') {
-    return { intent: 'DONE' };
-  }
-  if (lowerMsg === 'help' || lowerMsg === '/help' || lowerMsg === 'start' || lowerMsg === '/start') {
-    return { intent: 'HELP' };
-  }
-  if (lowerMsg === 'status' || lowerMsg === 'billing' || lowerMsg === '/status') {
-    return { intent: 'BILLING' };
-  }
-  if (lowerMsg === 'erase' || lowerMsg === 'delete my data' || lowerMsg === '/erase') {
-    return { intent: 'ERASE' };
-  }
+  const isList = ['list', '/list', 'lista', 'ver', 'soochi', 'dikhao'].includes(lowerMsg);
+  const isDone = ['done', '/done', 'listo', 'hecho', 'ho gaya', 'khatam'].includes(lowerMsg);
+  const isHelp = ['help', '/help', 'start', '/start', 'ayuda', 'madad'].includes(lowerMsg);
+  const isBilling = ['status', 'billing', '/status', 'pago'].includes(lowerMsg);
+  const isErase = ['erase', 'delete my data', '/erase', 'borrar'].includes(lowerMsg);
+
+  if (isList) return { intent: 'LIST' };
+  if (isDone) return { intent: 'DONE' };
+  if (isHelp) return { intent: 'HELP' };
+  if (isBilling) return { intent: 'BILLING' };
+  if (isErase) return { intent: 'ERASE' };
 
   // 1. Try OpenAI (4s timeout)
   try {
     const openAIResult = await withTimeout(parseWithOpenAI(message, userTimezone), 4000, null);
     if (openAIResult && openAIResult.intent !== 'UNKNOWN') {
-      console.log(`AI Pipeline: OpenAI Success [${openAIResult.intent}]`);
+      logger.info(`AI Pipeline: OpenAI Success [${openAIResult.intent}]`);
       return {
         intent: openAIResult.intent as Intent,
         task: openAIResult.task,
@@ -66,14 +63,14 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       };
     }
   } catch (error) {
-    console.warn("AI Pipeline: OpenAI failed or timed out, falling back to Gemini");
+    logger.warn("AI Pipeline: OpenAI failed or timed out, falling back to Gemini");
   }
 
   // 2. Try Gemini (4s timeout)
   try {
     const geminiResult = await withTimeout(parseWithGemini(message, userTimezone), 4000, { intent: 'UNKNOWN' });
     if (geminiResult && geminiResult.intent !== 'UNKNOWN') {
-      console.log(`AI Pipeline: Gemini Success [${geminiResult.intent}]`);
+      logger.info(`AI Pipeline: Gemini Success [${geminiResult.intent}]`);
       return {
         intent: geminiResult.intent as Intent,
         task: geminiResult.task,
@@ -84,14 +81,14 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       };
     }
   } catch (error) {
-    console.warn("AI Pipeline: Gemini failed or timed out, falling back to OpenRouter");
+    logger.warn("AI Pipeline: Gemini failed or timed out, falling back to OpenRouter");
   }
 
   // 3. Try OpenRouter (Final LLM Fallback - 5s timeout)
   try {
     const orResult = await withTimeout(parseWithOpenRouter(message, userTimezone), 5000, null);
     if (orResult && orResult.intent !== 'UNKNOWN') {
-      console.log(`AI Pipeline: OpenRouter Success [${orResult.intent}]`);
+      logger.info(`AI Pipeline: OpenRouter Success [${orResult.intent}]`);
       return {
         intent: orResult.intent as Intent,
         task: orResult.task,
@@ -102,11 +99,11 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       };
     }
   } catch (error) {
-    console.error("AI Pipeline: OpenRouter failed");
+    logger.error("AI Pipeline: OpenRouter failed", { error });
   }
 
   // 4. Final Local Heuristic Fallback (Last Resort)
-  console.log("AI Pipeline: All LLMs failed, using local heuristics");
+  logger.info("AI Pipeline: All LLMs failed, using local heuristics");
   const lower = message.toLowerCase();
 
   if (lower.includes('list') || lower.includes('show') || lower.includes('tasks')) {

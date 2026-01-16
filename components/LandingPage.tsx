@@ -77,7 +77,14 @@ const translations = {
 
 export default function LandingPage() {
   const [lang, setLang] = useState<'en' | 'hi'>('en');
+  const [systemStatus, setSystemStatus] = useState<'checking' | 'ok' | 'error'>('checking');
   const t = translations[lang];
+
+  React.useEffect(() => {
+    fetch('/api/health')
+      .then(res => res.ok ? setSystemStatus('ok') : setSystemStatus('error'))
+      .catch(() => setSystemStatus('error'));
+  }, []);
 
   return (
     <div className="relative isolate bg-[#020617] selection:bg-indigo-500/30 overflow-x-hidden min-h-screen flex flex-col">
@@ -104,6 +111,13 @@ export default function LandingPage() {
               {lang === 'en' ? 'हिन्दी' : 'English'}
             </span>
           </button>
+          
+          <Link 
+            href="/login"
+            className="px-6 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
+          >
+            Login
+          </Link>
         </div>
       </nav>
 
@@ -228,7 +242,7 @@ export default function LandingPage() {
                     "Community Support"
                   ]}
                   cta={t.startFree}
-                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20start%20for%20free."}
+                  href="/login?plan=free"
                 />
               </div>
               <div className="col-span-12 md:col-span-6">
@@ -245,7 +259,7 @@ export default function LandingPage() {
                     "Multi-platform Sync"
                   ]}
                   cta={t.goPremium}
-                  href={process.env.NEXT_PUBLIC_WHATSAPP_LINK || "https://wa.me/your-number?text=Hi!%20I'd%20like%20to%20upgrade%20to%20Premium."}
+                  href="/login?plan=premium"
                 />
               </div>
             </div>
@@ -263,9 +277,25 @@ export default function LandingPage() {
               </div>
               <span className="text-lg font-black tracking-tighter text-white uppercase italic">RemindAI</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">{t.systemOperational}</span>
+            <div className={`flex items-center gap-2 px-4 py-2 ${
+              systemStatus === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20' : 
+              systemStatus === 'error' ? 'bg-rose-500/10 border-rose-500/20' : 
+              'bg-amber-500/10 border-amber-500/20'
+            } border rounded-full`}>
+              <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                systemStatus === 'ok' ? 'bg-emerald-500' : 
+                systemStatus === 'error' ? 'bg-rose-500' : 
+                'bg-amber-500'
+              }`} />
+              <span className={`text-[9px] font-black uppercase tracking-widest ${
+                systemStatus === 'ok' ? 'text-emerald-500' : 
+                systemStatus === 'error' ? 'text-rose-500' : 
+                'text-amber-500'
+              }`}>
+                {systemStatus === 'ok' ? t.systemOperational : 
+                 systemStatus === 'error' ? 'System Issues Detected' : 
+                 'Checking Status...'}
+              </span>
             </div>
           </div>
 

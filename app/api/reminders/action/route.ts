@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { scheduleReminder } from '@/lib/queue';
-import { Intent, RecurrenceRule } from '@/services/aiService';
+import { Intent } from '@/services/aiService';
 import { isValidApiRequest } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,12 +26,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId, intent, task, time, recurrence, query, timezone } = await req.json();
+    const body = await req.json();
+    let { userId } = body;
+    const { intent, task, time, recurrence, query, timezone } = body;
 
-    if (!userId || !intent) {
-      return NextResponse.json({ error: 'userId and intent are required' }, { status: 400 });
+    if (!userId || (typeof userId === 'string' && userId.includes('{{'))) {
+      logger.error('[Backend Action] Invalid or unevaluated userId received', { userId });
+      return NextResponse.json({ error: 'Valid userId is required' }, { status: 400 });
     }
 
+    if (!intent) {
+      return NextResponse.json({ error: 'intent is required' }, { status: 400 });
+    }
+
+    // Clean up WhatsApp phone IDs (n8n/Twilio format)
+    if (typeof userId === 'string' && userId.startsWith('whatsapp:')) {
+      userId = userId.split(':')[1];
+    }
+
+    logger.info(`[Backend Action] Looking up user by phone: ${userId}`);
     const user = await db.getUserByPhone(userId);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -108,8 +122,8 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ success: true, message: "I couldn't understand that. Try: 'remind me to call mom tomorrow at 7pm'" });
     }
-  } catch (error: any) {
-    console.error('API Action Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    logger.error('API Action Error', { error });
+    return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
   }
 }

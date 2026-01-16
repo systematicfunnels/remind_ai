@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isValidApiRequest } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,17 +16,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { phoneId, channel, role } = await req.json();
-
-    if (!phoneId || !channel) {
-      return NextResponse.json({ error: 'phoneId and channel are required' }, { status: 400 });
+    const body = await req.json();
+    let { phoneId, channel } = body;
+    const { role } = body;
+    
+    if (!phoneId || (typeof phoneId === 'string' && phoneId.includes('{{'))) {
+      logger.error('[User Ensure] Invalid or unevaluated phoneId received', { phoneId });
+      return NextResponse.json({ error: 'Valid phoneId is required' }, { status: 400 });
     }
 
+    if (!channel) {
+      return NextResponse.json({ error: 'channel is required' }, { status: 400 });
+    }
+
+    // Clean up WhatsApp phone IDs (n8n/Twilio format)
+    if (typeof phoneId === 'string' && phoneId.startsWith('whatsapp:')) {
+      phoneId = phoneId.split(':')[1];
+      channel = 'whatsapp';
+    }
+
+    logger.info(`[User Ensure] Looking up user: ${phoneId} on channel: ${channel}`);
     let user = await db.getUserByPhone(phoneId);
     let isNew = false;
 
     if (!user) {
-      user = await db.createUser(phoneId, channel, role || 'user');
+      user = await db.createUser({ 
+        phoneId, 
+        channel, 
+        role: (role as 'user' | 'admin') || 'user' 
+      });
       isNew = true;
     }
 
@@ -39,8 +58,8 @@ export async function POST(req: NextRequest) {
       isNew,
       welcomeMessage: isNew ? db.getWelcomeMessage() : null
     });
-  } catch (error: any) {
-    console.error('API User Ensure Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    logger.error('API User Ensure Error', { error });
+    return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
   }
 }

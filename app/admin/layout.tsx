@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, Bell, BarChart3, Settings, Search, 
-  Menu, X, LogOut, Zap
+  Menu, X, LogOut, Zap, Megaphone
 } from 'lucide-react';
 import { Toast, Breadcrumbs } from '@/components/admin/AdminUI';
 import { logout } from '@/lib/adminActions';
@@ -14,6 +14,7 @@ const menuItems = [
   { icon: <BarChart3 size={20} />, label: 'Control Room', path: '/admin' },
   { icon: <Users size={20} />, label: 'User Directory', path: '/admin/users' },
   { icon: <Bell size={20} />, label: 'Job Pipeline', path: '/admin/reminders' },
+  { icon: <Megaphone size={20} />, label: 'Broadcast', path: '/admin/broadcast' },
   { icon: <Settings size={20} />, label: 'Core Config', path: '/admin/settings' },
 ];
 

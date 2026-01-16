@@ -1,0 +1,207 @@
+{
+  "name": "RemindAI Production Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "whatsapp-trigger",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "phoneId",
+              "value": "={{ $json.from || $json.message?.from?.id?.toString() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "channel",
+              "value": "={{ $json.from ? 'whatsapp' : 'telegram' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "messageText",
+              "value": "={{ $json.body || $json.message?.text || '' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [200, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/users/ensure",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{ $env.API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"phoneId\": $json.phoneId,\n  \"channel\": $json.channel\n}) }}",
+        "options": {}
+      },
+      "id": "user-ensure",
+      "name": "User Ensure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [400, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/ai/parse",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{ $env.API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"message\": $('Config').item.json.messageText,\n  \"timezone\": $json.user?.timezone || 'UTC'\n}) }}",
+        "options": {}
+      },
+      "id": "ai-parse",
+      "name": "AI Parse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/reminders/action",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{ $env.API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"userId\": $('Config').item.json.phoneId,\n  \"intent\": $json.intent,\n  \"task\": $json.task,\n  \"time\": $json.time,\n  \"recurrence\": $json.recurrence,\n  \"query\": $json.query\n}) }}",
+        "options": {}
+      },
+      "id": "backend-action",
+      "name": "Backend Action",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Config').item.json.channel }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-telegram",
+      "name": "Is Telegram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1000, 100]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Config').item.json.phoneId }}",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "telegram-reply",
+      "name": "Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Config').item.json.phoneId }}",
+        "textBody": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "whatsapp-reply",
+      "name": "WhatsApp Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [1200, 200]
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [[{ "node": "config", "type": "main", "index": 0 }]]
+    },
+    "Telegram Trigger": {
+      "main": [[{ "node": "config", "type": "main", "index": 0 }]]
+    },
+    "config": {
+      "main": [[{ "node": "user-ensure", "type": "main", "index": 0 }]]
+    },
+    "user-ensure": {
+      "main": [[{ "node": "ai-parse", "type": "main", "index": 0 }]]
+    },
+    "ai-parse": {
+      "main": [[{ "node": "backend-action", "type": "main", "index": 0 }]]
+    },
+    "backend-action": {
+      "main": [[{ "node": "is-telegram", "type": "main", "index": 0 }]]
+    },
+    "is-telegram": {
+      "main": [
+        [{ "node": "telegram-reply", "type": "main", "index": 0 }],
+        [{ "node": "whatsapp-reply", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}
