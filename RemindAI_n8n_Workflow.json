@@ -1,0 +1,341 @@
+{
+  "name": "RemindAI Telegram Orchestrator (Dev Mode)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_URL}}/api/users/ensure",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{$env.API_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phoneId",
+              "value": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"id\"].toString()}}"
+            },
+            {
+              "name": "channel",
+              "value": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "user-ensure-node",
+      "name": "User Ensure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"voice\"] ? true : false}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "is-voice-node",
+      "name": "Is Voice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"voice\"][\"file_id\"]}}"
+      },
+      "id": "get-tg-file",
+      "name": "Get TG Voice",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        800,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_URL}}/api/ai/transcribe",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{$env.API_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "transcribe-node",
+      "name": "Transcribe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_URL}}/api/ai/parse",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{$env.API_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{$node[\"Is Voice?\"].context[\"outputIndex\"] === 0 ? $node[\"Transcribe\"].json[\"text\"] : $node[\"Telegram Trigger\"].json[\"message\"][\"text\"]}}"
+            },
+            {
+              "name": "timezone",
+              "value": "={{$node[\"User Ensure\"].json[\"user\"][\"timezone\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "parse-node",
+      "name": "LLM Parse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BACKEND_URL}}/api/reminders/action",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-secret",
+              "value": "={{$env.API_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"from\"][\"id\"].toString()}}"
+            },
+            {
+              "name": "intent",
+              "value": "={{$node[\"LLM Parse\"].json[\"intent\"]}}"
+            },
+            {
+              "name": "task",
+              "value": "={{$node[\"LLM Parse\"].json[\"task\"]}}"
+            },
+            {
+              "name": "time",
+              "value": "={{$node[\"LLM Parse\"].json[\"time\"]}}"
+            },
+            {
+              "name": "recurrence",
+              "value": "={{$node[\"LLM Parse\"].json[\"recurrence\"]}}"
+            },
+            {
+              "name": "query",
+              "value": "={{$node[\"LLM Parse\"].json[\"query\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "action-node",
+      "name": "Backend Action",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "text": "={{$node[\"Backend Action\"].json[\"message\"]}}",
+        "additionalFields": {}
+      },
+      "id": "telegram-reply-node",
+      "name": "Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds-id"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "User Ensure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Ensure": {
+      "main": [
+        [
+          {
+            "node": "Is Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Voice?": {
+      "main": [
+        [
+          {
+            "node": "Get TG Voice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "parse-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get TG Voice": {
+      "main": [
+        [
+          {
+            "node": "transcribe-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcribe-node": {
+      "main": [
+        [
+          {
+            "node": "parse-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-node": {
+      "main": [
+        [
+          {
+            "node": "action-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "action-node": {
+      "main": [
+        [
+          {
+            "node": "telegram-reply-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateId": ""
+  },
+  "pinData": {}
+}

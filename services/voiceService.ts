@@ -17,6 +17,8 @@ export const unifiedTranscribe = async (audioBuffer: Buffer, mimeType: string = 
     normalizedMimeType = 'audio/ogg';
   } else if (normalizedMimeType === 'audio/wav' || normalizedMimeType === 'audio/x-wav') {
     normalizedMimeType = 'audio/wav';
+  } else if (normalizedMimeType.includes('webm')) {
+    normalizedMimeType = 'audio/webm';
   }
 
   // 1. Try OpenAI Whisper

@@ -22,7 +22,8 @@ export function middleware(request: NextRequest) {
     }
 
     const cookie = request.cookies.get('admin_session');
-    const isAuthorized = cookie && cookie.value === adminSecret;
+    // Use a simple hash (base64) instead of raw secret for session cookie
+    const isAuthorized = cookie && cookie.value === Buffer.from(adminSecret).toString('base64');
 
     // Redirect authorized users away from login page
     if (path === '/admin/login' && isAuthorized) {

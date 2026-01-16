@@ -10,18 +10,18 @@ export const db = {
       const user = await prisma.user.findUnique({
         where: { phone_id: phoneId },
       });
-      
+
       if (user) {
-        // Update last_active_at only if it hasn't been updated in the last hour to save DB writes
-        const lastActive = user.last_active_at ? new Date(user.last_active_at).getTime() : 0;
-        if (Date.now() - lastActive > 1000 * 60 * 60) {
-          await prisma.user.update({
+        // Throttled update of last_active_at (once per hour)
+        const ONE_HOUR = 60 * 60 * 1000;
+        if (!user.last_active_at || Date.now() - new Date(user.last_active_at).getTime() > ONE_HOUR) {
+          prisma.user.update({
             where: { id: user.id },
             data: { last_active_at: new Date() }
-          });
+          }).catch(err => console.error('Throttled active update failed:', err));
         }
       }
-      
+
       return user;
     } catch (error) {
       console.error('Error fetching user with Prisma:', error);
@@ -29,12 +29,13 @@ export const db = {
     }
   },
 
-  async createUser(phoneId: string, channel: string = 'unknown'): Promise<User | null> {
+  async createUser(phoneId: string, channel: string = 'unknown', role: 'user' | 'admin' = 'user'): Promise<User | null> {
     try {
       return await prisma.user.create({
         data: {
           phone_id: phoneId,
           channel,
+          role,
           sub_status: 'trial',
           reminder_count: 0,
           last_active_at: new Date(),
@@ -182,6 +183,12 @@ export const db = {
           done_at: new Date(),
         },
       });
+
+      // Handle Recurrence for manual completion
+      if (lastReminder.recurrence && lastReminder.recurrence !== 'none') {
+        await this.handleRecurrence(lastReminder);
+      }
+
       return true;
     } catch (error) {
       console.error('Error marking reminder as done:', error);
@@ -215,10 +222,48 @@ export const db = {
           done_at: new Date()
         }
       });
+
+      // Handle Recurrence for manual completion
+      if (reminder.recurrence && reminder.recurrence !== 'none') {
+        await this.handleRecurrence(reminder);
+      }
+
       return true;
     } catch (error) {
       console.error('Error marking specific reminder as done:', error);
       return false;
+    }
+  },
+
+  async handleRecurrence(reminder: any) {
+    try {
+      const { scheduleReminder } = await import('./queue');
+      const nextScheduledAt = new Date(reminder.scheduled_at);
+      
+      if (reminder.recurrence === 'daily') {
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 1);
+      } else if (reminder.recurrence === 'weekly') {
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 7);
+      } else if (reminder.recurrence === 'monthly') {
+        nextScheduledAt.setMonth(nextScheduledAt.getMonth() + 1);
+      } else {
+        return; // No recurrence
+      }
+
+      const nextReminder = await prisma.reminder.create({
+        data: {
+          user_id: reminder.user_id,
+          task: reminder.task,
+          scheduled_at: nextScheduledAt,
+          status: 'pending',
+          recurrence: reminder.recurrence,
+        }
+      });
+
+      await scheduleReminder(nextReminder.id, reminder.user_id, reminder.task, nextScheduledAt.toISOString());
+      console.log(`Rescheduled recurring reminder ${reminder.id} -> ${nextReminder.id} for ${nextScheduledAt.toISOString()}`);
+    } catch (error) {
+      console.error('Failed to handle recurrence in db.ts:', error);
     }
   },
 

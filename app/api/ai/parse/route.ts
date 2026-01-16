@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unifiedParseIntent } from '@/services/aiService';
+import { isValidApiRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!isValidApiRequest(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { message, timezone } = await req.json();
 
     if (!message) {

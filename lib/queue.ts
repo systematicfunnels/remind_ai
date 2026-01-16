@@ -79,18 +79,6 @@ export async function sendDirectMessage(phoneId: string, platform: string, messa
           body: message,
         });
       }
-    } else if (platform === 'instagram') {
-      const PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
-      if (PAGE_ACCESS_TOKEN) {
-        await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipient: { id: phoneId },
-            message: { text: message },
-          }),
-        });
-      }
     } else {
       // Telegram
       await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -140,20 +128,6 @@ export const startWorker = () => {
         } else {
           console.error('Twilio client not initialized');
         }
-      } else if (platform === 'instagram') {
-        const PAGE_ACCESS_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
-        if (PAGE_ACCESS_TOKEN) {
-          await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              recipient: { id: phoneId },
-              message: { text: messageText },
-            }),
-          });
-        } else {
-          console.error('INSTAGRAM_PAGE_ACCESS_TOKEN missing');
-        }
       } else {
         // Default to Telegram
         await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -178,29 +152,8 @@ export const startWorker = () => {
 
       // Handle Recurrence: Schedule the next instance
       if (reminder.recurrence && reminder.recurrence !== 'none') {
-        const nextScheduledAt = new Date(reminder.scheduled_at);
-        if (reminder.recurrence === 'daily') {
-          nextScheduledAt.setDate(nextScheduledAt.getDate() + 1);
-        } else if (reminder.recurrence === 'weekly') {
-          nextScheduledAt.setDate(nextScheduledAt.getDate() + 7);
-        } else if (reminder.recurrence === 'monthly') {
-          nextScheduledAt.setMonth(nextScheduledAt.getMonth() + 1);
-        }
-
-        // Create new reminder instance for recurrence
-        const nextReminder = await prisma.reminder.create({
-          data: {
-            user_id: reminder.user_id,
-            task: reminder.task,
-            scheduled_at: nextScheduledAt,
-            status: 'pending',
-            recurrence: reminder.recurrence,
-          }
-        });
-
-        // Schedule the next job
-        await scheduleReminder(nextReminder.id, reminder.user_id!, reminder.task, nextScheduledAt.toISOString());
-        console.log(`Rescheduled recurring reminder ${reminder.id} for ${nextScheduledAt.toISOString()}`);
+        const { db } = await import('./db');
+        await db.handleRecurrence(reminder);
       }
  
     } catch (error) {

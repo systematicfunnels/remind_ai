@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({ success: true });
       
-      // Set the admin_session cookie with enhanced security
-      response.cookies.set('admin_session', adminSecret, {
+      // Set authorized session cookie (Base64 encoded secret for security)
+      response.cookies.set('admin_session', Buffer.from(adminSecret).toString('base64'), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict', // More secure than 'lax'

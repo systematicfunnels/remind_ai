@@ -169,16 +169,17 @@ export const unifiedParseIntent = async (message: string, userTimezone: string =
       task = task.replace(/in \d+\s*day(s)?/gi, '').trim();
     }
 
-    // 3. Handle "at X am/pm" (Very basic heuristic)
-    const timeMatch = lower.match(/at (\d+)\s*(am|pm)/i);
+    // 3. Handle "at X am/pm" (Supports HH:mm format)
+    const timeMatch = lower.match(/at (\d+)(?::(\d+))?\s*(am|pm)/i);
     if (timeMatch) {
       let hours = parseInt(timeMatch[1]);
-      const ampm = timeMatch[2].toLowerCase();
+      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const ampm = timeMatch[3].toLowerCase();
       if (ampm === 'pm' && hours < 12) hours += 12;
       if (ampm === 'am' && hours === 12) hours = 0;
       
       const targetInUserTZ = new Date(userNow);
-      targetInUserTZ.setHours(hours, 0, 0, 0);
+      targetInUserTZ.setHours(hours, minutes, 0, 0);
       
       if (targetInUserTZ < userNow && !lower.includes('tomorrow')) {
         targetInUserTZ.setDate(targetInUserTZ.getDate() + 1);

@@ -23,9 +23,15 @@ enum RecurrenceRule {
   monthly
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 model User {
   id             String     @id @default(uuid()) @db.Uuid
   phone_id       String     @unique
+  role           UserRole   @default(user)
   channel        String?    @default("unknown")
   sub_status     String?    @default("trial")
   is_blocked     Boolean?   @default(false)

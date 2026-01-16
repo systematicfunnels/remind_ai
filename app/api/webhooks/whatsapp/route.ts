@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   
   // Security: Validate Twilio Signature
   const signature = req.headers.get('x-twilio-signature') || '';
-  const url = process.env.WHATSAPP_WEBHOOK_URL || '';
+  // Normalize URLs to prevent trailing slash mismatches
+  const url = (process.env.WHATSAPP_WEBHOOK_URL || '').replace(/\/$/, '');
   const params = Object.fromEntries(formData.entries());
 
   if (process.env.NODE_ENV === 'production' && !twilio.validateRequest(process.env.TWILIO_AUTH_TOKEN!, signature, url, params)) {

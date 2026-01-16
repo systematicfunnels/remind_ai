@@ -1,23 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
-
-export type RecurrenceRule = 'none' | 'daily' | 'weekly' | 'monthly';
+import { Intent, RecurrenceRule, UnifiedAIResponse as AIResponse } from './aiService';
 
 const getAI = () => {
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'undefined' || apiKey.length < 5) return null;
   return new GoogleGenAI({ apiKey });
 };
-
-export type Intent = 'CREATE' | 'LIST' | 'DONE' | 'HELP' | 'TIMEZONE' | 'BILLING' | 'ERASE' | 'UNKNOWN';
-
-export interface AIResponse {
-  intent: Intent;
-  task?: string;
-  time?: string; // ISO 8601 string
-  recurrence?: RecurrenceRule;
-  query?: string;
-  timezone?: string;
-}
 
 const fallbackParse = (message: string): AIResponse => {
   const msg = message.toLowerCase().trim();
