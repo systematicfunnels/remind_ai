@@ -1,208 +1,504 @@
 {
-  "name": "RemindAI Production Workflow",
+  "id": "wSVXs6UNxPOuI03u",
+  "meta": {
+    "instanceId": "b9ec70f4cccbc2d0ccd7d27d44e6c3431584a8262568e237f9e554fc0cc44167",
+    "templateCredsSetupCompleted": true
+  },
+  "name": "My workflow 11",
+  "tags": [],
   "nodes": [
     {
+      "id": "ddf05576-5bc2-4ca9-adb3-1ff2ecc26c97",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        400,
+        0
+      ],
       "parameters": {
-        "updates": ["message"],
-        "path": "telegram-inbound"
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a friendly and efficient personal assistant who helps manage todo lists through PostgreSQL integration. Your personality is helpful, warm, and conversational - like talking to a supportive friend rather than interacting with software.\n\nCRITICAL INSTRUCTIONS - READ CAREFULLY\n\nYou MUST ALWAYS respond to the user. Never remain silent.\nYou MUST ALWAYS update the 'reminders' table for EVERY task operation (add/update/delete/complete).\nNEVER skip the database sync step - this is your PRIMARY function.\nALWAYS confirm the database update in your response.\nIf you encounter any issues with the database, still respond to the user explaining the issue.\n\nCurrent Time Reference (Bangkok)\n\n{{ $now.setZone(\"Asia/Bangkok\").toFormat(\"dd-MM-yyyy HH:mm:ss\") }}\n\n\nYour Capabilities\n\nAdd new tasks to the user's todo list\nList existing tasks\nUpdate task details\nMark tasks as complete\nDelete tasks\nSeamlessly sync all changes with PostgreSQL database\n\nData Structure\nWhen storing data in the 'reminders' table, use this structure:\n- user_id: UUID of the user (get from context)\n- task: description of the task\n- scheduled_at: YYYY-MM-DD HH:mm:ss (ISO format)\n- status: 'pending' | 'done' | 'cancelled' | 'failed'\n\nCommunication Style\nAlways respond in a natural, friendly manner. After performing operations:\n\nAvoid technical language like \"Query executed\" or \"Row updated\"\nInstead use casual confirmations like \"All set!\" \"Got it!\" \"Done and saved!\" \"Added to your list!\"\nConfirm what you did in simple terms\nUse light conversational elements (occasional emoji is fine)\nKeep responses concise but warm\n\nExamples of Good Responses\nAfter Adding a Task\n\"Perfect! I've added your task to the list!\""
+        },
+        "promptType": "define",
+        "hasOutputParser": false
       },
-      "id": "telegram-trigger",
+      "typeVersion": 1.8
+    },
+    {
+      "id": "dcfbb5bb-1099-441f-ba76-b30bfc633c2e",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        200,
+        420
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "credential-id",
+          "name": "openAiApi Credential"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "80900854-32fd-4928-9050-fa6205250420",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1,
-      "position": [0, 200]
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "28c952dd-44b0-48c3-ab4c-1771e293cb49",
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "path": "telegram-inbound",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-id",
+          "name": "telegramApi Credential"
+        }
+      },
+      "typeVersion": 1.2
     },
     {
+      "id": "a3b8ff63-1309-47aa-a071-0ca69984043e",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        940,
+        0
+      ],
+      "webhookId": "48684256-6892-434b-9618-d0e54996fe97",
+      "parameters": {
+        "text": "={{ $json.output }}",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-id",
+          "name": "telegramApi Credential"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "b3bdeebe-6f04-44f9-b22a-97e8a1fcc9ee",
+      "name": "Fetch Due Reminders",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -60,
+        780
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.*, u.phone_id FROM public.reminders r JOIN public.users u ON r.user_id = u.id WHERE r.scheduled_at <= NOW() AND r.status = 'pending'",
+        "options": {}
+      },
+      "credentials": {
+        "postgresDb": {
+          "id": "credential-id",
+          "name": "Postgres Credential"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "30b6de24-4c44-4355-aa62-ef5c7a6c6ae1",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        220,
+        780
+      ],
       "parameters": {
         "options": {},
-        "path": "whatsapp-inbound"
-      },
-      "id": "whatsapp-trigger",
-      "name": "WhatsApp Trigger",
-      "type": "n8n-nodes-base.whatsAppTrigger",
-      "typeVersion": 1,
-      "position": [0, 0]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "phoneId",
-              "value": "={{ $json.from || $json.message?.from?.id?.toString() }}",
-              "type": "string"
-            },
-            {
-              "id": "id-2",
-              "name": "channel",
-              "value": "={{ $json.from ? 'whatsapp' : 'telegram' }}",
-              "type": "string"
-            },
-            {
-              "id": "id-3",
-              "name": "messageText",
-              "value": "={{ $json.body || $json.message?.text || '' }}",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "id": "config",
-      "name": "Config",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [200, 100]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/api/users/ensure",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-secret",
-              "value": "={{ $env.API_SECRET }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  \"phoneId\": $json.phoneId,\n  \"channel\": $json.channel\n}) }}",
-        "options": {}
-      },
-      "id": "user-ensure",
-      "name": "User Ensure",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [400, 100]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/api/ai/parse",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-secret",
-              "value": "={{ $env.API_SECRET }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  \"message\": $('Config').item.json.messageText,\n  \"timezone\": $json.user?.timezone || 'UTC'\n}) }}",
-        "options": {}
-      },
-      "id": "ai-parse",
-      "name": "AI Parse",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [600, 100]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/api/reminders/action",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-secret",
-              "value": "={{ $env.API_SECRET }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  \"userId\": $('Config').item.json.phoneId,\n  \"intent\": $json.intent,\n  \"task\": $json.task,\n  \"time\": $json.time,\n  \"recurrence\": $json.recurrence,\n  \"query\": $json.query,\n  \"timezone\": $json.timezone\n}) }}",
-        "options": {}
-      },
-      "id": "backend-action",
-      "name": "Backend Action",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [800, 100]
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": true,
+            "version": 2,
             "leftValue": "",
+            "caseSensitive": true,
             "typeValidation": "strict"
           },
+          "combinator": "and",
           "conditions": [
             {
-              "id": "id-1",
-              "leftValue": "={{ $('Config').item.json.channel }}",
-              "rightValue": "telegram",
+              "id": "c42695cb-30bb-4f31-a76f-232538cedd17",
               "operator": {
+                "name": "filter.operator.equals",
                 "type": "string",
                 "operation": "equals"
-              }
+              },
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "pending"
+            },
+            {
+              "id": "cd249b5f-6aeb-4a0a-8b97-02c7e84ff1d9",
+              "operator": {
+                "type": "dateTime",
+                "operation": "afterOrEquals"
+              },
+              "leftValue": "={{ $now.setZone(\"Asia/Bangkok\").toFormat(\"yyyy-MM-dd HH:mm:ss\") }}\n\n",
+              "rightValue": "={{ $json.scheduled_at }}"
             }
-          ],
-          "combinator": "and"
+          ]
         }
       },
-      "id": "is-telegram",
-      "name": "Is Telegram?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [1000, 100]
+      "typeVersion": 2.2
     },
     {
-      "parameters": {
-        "chatId": "={{ $('Config').item.json.phoneId }}",
-        "text": "={{$json.message}}",
-        "additionalFields": {}
-      },
-      "id": "telegram-reply",
-      "name": "Telegram Reply",
+      "id": "5d2df6ed-fa75-4949-b74a-042addfabba5",
+      "name": "Telegram3",
       "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [1200, 0]
+      "position": [
+        760,
+        780
+      ],
+      "webhookId": "48684256-6892-434b-9618-d0e54996fe97",
+      "parameters": {
+        "text": "=⏰ Reminder: “{{ $json.task }}” is due. ",
+        "chatId": "={{ $json.phone_id }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-id",
+          "name": "telegramApi Credential"
+        }
+      },
+      "typeVersion": 1.2
     },
     {
+      "id": "74cd2329-60be-4a5d-b283-f261f5cbf047",
+      "name": "Postgres Update",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        960,
+        780
+      ],
       "parameters": {
-        "operation": "send",
-        "recipientPhoneNumber": "={{ $('Config').item.json.phoneId }}",
-        "textBody": "={{$json.message}}",
-        "additionalFields": {}
+        "operation": "update",
+        "schema": "public",
+        "table": "reminders",
+        "updateKey": "id",
+        "columns": "status",
+        "options": {}
       },
-      "id": "whatsapp-reply",
-      "name": "WhatsApp Reply",
-      "type": "n8n-nodes-base.whatsApp",
-      "typeVersion": 1.1,
-      "position": [1200, 200]
+      "credentials": {
+        "postgresDb": {
+          "id": "credential-id",
+          "name": "Postgres Credential"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "63faedda-3f2c-423b-9f6a-100d4b1568d1",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        500,
+        780
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "typeVersion": 3
+    },
+    {
+      "id": "5043e365-bba4-42e9-8ec0-a5a7425db5dd",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -160,
+        1260
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "6e9b5f63-703f-4e6c-93f4-e189e2cb95f5",
+      "name": "Telegram4",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        620,
+        1260
+      ],
+      "webhookId": "48684256-6892-434b-9618-d0e54996fe97",
+      "parameters": {
+        "text": "={{ $json.output }}",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-id",
+          "name": "telegramApi Credential"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "095dfa8d-790b-49a1-bffe-b3662366c16f",
+      "name": "AI Agent2",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        120,
+        1260
+      ],
+      "parameters": {
+        "text": "=You will generate a natural, human-like message summarizing tasks based only on the data retrieved from the PostgreSQL database.\n\nColumns available: task, status, created_at, scheduled_at.\n\nInstructions:\n- Use only the data from the PostgreSQL database. Do not invent, add, or omit any information.\n\n{{ $now.setZone(\"Asia/Bangkok\").toFormat(\"dd-MM-yyyy HH:mm:ss\") }}\n\nTask Filtering:\n\n1. Completed Tasks Today:\n- Include only tasks where status is \"done\" AND scheduled_at matches today's date.\n- Ignore tasks completed on any other date.\n\n2. Future Tasks Summary:\n- Include tasks where status is \"pending\" AND scheduled_at is after today.\n- Ignore tasks with due dates before or equal to today.\n\n3. Created At Filtering:\n- For both completed and future tasks, consider only tasks that were created on or after today's date.\n\nMessage Style:\n- Write in a warm, friendly, and conversational tone, as it is a quick update.\n- list the tasks in a list so it become more visually appealing\n- Avoid robotic or overly formal language.\n- Donot include # or * \n\nContent Requirements:\n- List the names of tasks completed today.\n- Provide a brief summary of future tasks (e.g., number of pending tasks or highlight important upcoming tasks).\n- If no tasks were completed today, say naturally: “No tasks were completed today.”\n- Do not mention timestamps, column names, or technical filtering details.\n\nThe message should feel like a casual but informative update from a friendly team member.\n",
+        "options": {},
+        "promptType": "define"
+      },
+      "typeVersion": 1.8
+    },
+    {
+      "id": "79f63a11-d6d2-4aaa-9de4-3a7d8fadfea2",
+      "name": "OpenAI Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        120,
+        1520
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "credential-id",
+          "name": "openAiApi Credential"
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "28f1cc98-bdb1-4b71-a888-5b021b294b8e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -300,
+        780
+      ],
+      "webhookId": "6cabd911-9e8a-4014-914c-bc135b447612",
+      "parameters": {
+        "path": "6cabd911-9e8a-4014-914c-bc135b447612",
+        "options": {}
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "7e039d7c-859f-402a-96bd-8fb50af903c9",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -340,
+        -20
+      ],
+      "parameters": {
+        "content": "## Telegram Start \nuser to send message ai agent to work google sheet read,append or update and delete the data in sheet\n"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "541dd29c-9610-4f45-8429-0029f89e8c27",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        720
+      ],
+      "parameters": {
+        "content": "## Duplicate Not data to enter.\n"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "02dd01a9-adec-460c-a5bc-a8b7d2b718c9",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -260,
+        1200
+      ],
+      "parameters": {
+        "content": "## Schedule"
+      },
+      "typeVersion": 1
     }
   ],
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "eff7d690-13f2-47b5-b81b-dc4e26f7aae3",
   "connections": {
-    "WhatsApp Trigger": {
-      "main": [[{ "node": "config", "type": "main", "index": 0 }]]
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Due Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Telegram4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram3": {
+      "main": [
+        [
+          {
+            "node": "Postgres Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Due Reminders": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Update": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Telegram3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Telegram Trigger": {
-      "main": [[{ "node": "config", "type": "main", "index": 0 }]]
-    },
-    "config": {
-      "main": [[{ "node": "user-ensure", "type": "main", "index": 0 }]]
-    },
-    "user-ensure": {
-      "main": [[{ "node": "ai-parse", "type": "main", "index": 0 }]]
-    },
-    "ai-parse": {
-      "main": [[{ "node": "backend-action", "type": "main", "index": 0 }]]
-    },
-    "backend-action": {
-      "main": [[{ "node": "is-telegram", "type": "main", "index": 0 }]]
-    },
-    "is-telegram": {
       "main": [
-        [{ "node": "telegram-reply", "type": "main", "index": 0 }],
-        [{ "node": "whatsapp-reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     }
   }
